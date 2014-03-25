@@ -17,8 +17,10 @@ class Auth(Protocol):
         self.transport.write(
             "Welcome! There are currently %d open connections.\n" %
             (self.factory.numProtocols,))
-        self.transport.write("Please Login.\nUsername: ")
+        self.transport.write("Please Login.\n")
+        self.transport.write("Username: ")
         self.state = "username"
+        print "getting username"
 
     def connectionLost(self, reason):
         self.factory.numProtocols = self.factory.numProtocols-1
@@ -28,9 +30,14 @@ class Auth(Protocol):
             self.username = data.strip()
             self.transport.write("Password: ")
             self.state = "password"
+            print "getting password"
         elif self.state == "password":
             self.password = data.strip()
+            # Try to login using the database
             self.state = "loggedin"
+            print "A user logged in"
+            # If can't login, create new account with credentials
+
         elif data.strip() == "quit":
             self.transport.loseConnection()
         else:
