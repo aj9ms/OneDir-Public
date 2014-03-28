@@ -7,11 +7,19 @@ from watchdog.observers import Observer
 #Has single queue_event() method
 from watchdog.observers.api import EventQueue
 from watchdog.utils.dirsnapshot import DirectorySnapshot, DirectorySnapshotDiff
+import sync_test
+import rsync
 
 class MyHandler(FileSystemEventHandler):
     def on_any_event(self, event):
         names = []
-        names.append(event.src_path)
+        if event.src_path not in names:
+	        names.append(event.src_path)
+	#line below only used for testing; sync_test figures out which option it is and what to do.
+	#figure out how to get the event's source path (ie, the file/folder that was modified) to be added
+	#to a names list, which can then be used in sync_test
+	print "something (file/folder) was modified/created/deleted!"
+	print event.src_path
 """    def on_modified(self, event):
         print "file modified!"
     def on_created(self, event):
@@ -44,6 +52,8 @@ if __name__ == "__main__":
     try:
         while True:
             time.sleep(1)
+            #would potentially be used to sync the files after the Observer object finds differences
+            #sync_test.sync(sink, target, names)
     except KeyboardInterrupt:
         observer.stop()
     observer.join()
