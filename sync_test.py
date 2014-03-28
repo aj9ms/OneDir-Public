@@ -1,15 +1,16 @@
 import rsync
 from rsync import Cookie
 
-def sync():
+#def sync():
+def sync(sink, target, names):
     cookie = Cookie()
-    cookie.sink_root = "OneDir-ToSync"
-    cookie.target_root = "OneDir"
-    dirname = "OneDir"
+    cookie.sink_root = sink
+    cookie.target_root = target
+    dirname = target
     #names of files to update
-    names = ["test.txt", "test2.txt", "test3.txt"]
-    rsync.visit(cookie, dirname, names)
-
+    name = ["test.txt", "test.py"]
+    rsync.visit(cookie, dirname, name)
 
 if __name__ == "__main__":
-    sync()
+    names = []
+    sync("SyncWithOneDir", "OneDir", names)

@@ -9,7 +9,10 @@ from watchdog.observers.api import EventQueue
 from watchdog.utils.dirsnapshot import DirectorySnapshot, DirectorySnapshotDiff
 
 class MyHandler(FileSystemEventHandler):
-    def on_modified(self, event):
+    def on_any_event(self, event):
+        names = []
+        names.append(event.src_path)
+"""    def on_modified(self, event):
         print "file modified!"
     def on_created(self, event):
         print "file created!"
@@ -18,7 +21,7 @@ class MyHandler(FileSystemEventHandler):
     def on_any_event(self, event):
         if event.is_directory:
 	     print "directory changed"
-        print event.src_path
+        print event.src_path"""
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO,
