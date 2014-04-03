@@ -40,6 +40,8 @@ class Auth(Protocol):
 
         elif data.strip() == "quit":
             self.transport.loseConnection()
+        elif data.strip() == "file-transfer":
+        	self.transport.write("GO")
         else:
             self.transport.write("Welcome " + self.username + "!\n")
 
