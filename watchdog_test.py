@@ -39,9 +39,8 @@ class MyHandler(FileSystemEventHandler):
         logging.warning(event.src_path + ' deleted')
     def on_any_event(self, event):
         source = event.src_path
-        directory = source.split("/")
-        print directory[len(directory)-1]
-        #print event.event_type
+        #directory = source.split("/")
+        print source[source.find("/OneDir/", 0, len(source))+8:]
 
 def walker_callback(path, stat_info, self=None):
     return
@@ -59,8 +58,8 @@ if __name__ == "__main__":
     observer = Observer()
     observer.schedule(event_handler, path, recursive=True)
     observer.start()
-    stringtest = "/OneDir/Test Folder/test.txt"
-    stringtest[
+    #stringtest = "/OneDir/Test Folder/test.txt"
+    #print stringtest[stringtest.find("OneDir", 0, len(stringtest))+6:]
     try:
         while True:
             time.sleep(1)
