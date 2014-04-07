@@ -20,7 +20,7 @@ class MyHandler(FileSystemEventHandler):
             print "directory modified"
         else:
             print "file modified!"""
-
+        upload(ftp, event.src_path, event.src_path.split('/')[len(event.src_path.split('/')) - 1])
         logging.warning(event.src_path + ' modified')
     def on_created(self, event):
        """ if event.is_directory:
@@ -54,7 +54,7 @@ def watchTheDog(directory):
     observer = Observer()
     observer.schedule(event_handler, directory, recursive=True)
     observer.start()
-    #stringtest = "/OneDir/Test Folder/test.txt"
+    #stringtest = "/OneDir/Test_Folder/test.txt"
     #print stringtest[stringtest.find("OneDir", 0, len(stringtest))+6:]
     try:
         while True:
@@ -82,16 +82,26 @@ def getTextFile(ftp, filename, outfile=None):
 def upload(ftp, filePath, fileName):
     # upload a file
     if filePath != fileName:
-        # ensures that the directory exists on the server
-        print 'the file is in a subdirectory'
-        # changes to that directory on the server
-
-        # then upload the file
-    extension = os.path.splitext(fileName)[1]
-    if extension in ('.txt', '.htm', '.html'):
-        ftp.storlines('STOR ' + fileName, open(filePath))
+        current = ftp.pwd()
+        folders = filePath.split('/')
+        for x in range(0, len(folders) - 1):
+            if folders[x] in ftp.nlst(ftp.pwd()):
+                ftp.cwd(folders[x])
+            else:
+                ftp.mkd(folders[x])
+                ftp.cwd(folders[x])
+        extension = os.path.splitext(fileName)[1]
+        if extension in ('.txt', '.htm', '.html'):
+            ftp.storlines('STOR ' + fileName, open(filePath))
+        else:
+            ftp.storbinary('STOR ' + fileName, open(filePath, 'rb'), 1024)
+        ftp.cwd(current)
     else:
-        ftp.storbinary('STOR ' + fileName, open(filePath, 'rb'), 1024)
+        extension = os.path.splitext(fileName)[1]
+        if extension in ('.txt', '.htm', '.html'):
+            ftp.storlines('STOR ' + fileName, open(filePath))
+        else:
+            ftp.storbinary('STOR ' + fileName, open(filePath, 'rb'), 1024)
 
 def run():
     # do a sample run, logging in to a local ftp server with my credentials
@@ -102,7 +112,10 @@ def run():
     watchDogThread.start()
     print "IT STARTEDD"
 
-    getTextFile(ftp, 'ben.txt', 'ben.txt')
+    # upload(ftp, 'OneDir/Test_Folder/test.txt', 'test.txt')
+    # upload(ftp, 'OneDir/test.txt', 'test.txt')
+    # upload(ftp, 'OneDir/test.py', 'test.py')
+    # upload(ftp, 'OneDir/test.py', 'test.py')
 
 if __name__ == '__main__':
     run()
