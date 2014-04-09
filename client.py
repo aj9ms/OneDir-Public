@@ -1,5 +1,6 @@
 __author__ = 'ben'
 from ftplib import FTP
+from ftplib import all_errors
 import os
 import sys
 import time
@@ -20,7 +21,9 @@ class MyHandler(FileSystemEventHandler):
             print "directory modified"
         else:
             print "file modified!"""
-        upload(ftp, event.src_path, event.src_path.split('/')[len(event.src_path.split('/')) - 1])
+        print "this is being modified " + event.src_path
+        # if not event.is_directory:
+        #     upload(ftp, event.src_path, event.src_path.split('/')[len(event.src_path.split('/')) - 1])
         logging.warning(event.src_path + ' modified')
     def on_created(self, event):
        """ if event.is_directory:
@@ -28,6 +31,8 @@ class MyHandler(FileSystemEventHandler):
         else:
             print "file created!"""
        # if it's a file, just put it on the server
+       if not event.is_directory:
+            upload(ftp, event.src_path, event.src_path.split('/')[len(event.src_path.split('/')) - 1])
 
        # if it's a directory, create the directory on the server
        logging.warning(event.src_path + ' created')
@@ -79,17 +84,31 @@ def getTextFile(ftp, filename, outfile=None):
         outfile = open(outfile, 'w')
     ftp.retrlines('RETR ' + filename, lambda s, w = outfile.write: w(s + '\n'))
 
-def upload(ftp, filePath, fileName):
+def deleteFile(ftp, filePath, fileName):
+    # delete a file on the server
+    ftp.delete(filePath)
+
+def deleteDir(ftp, filePath, fileName):
+    # delete a directory on the server -- need to delete all files in the directory first
+    ftp.rmd(filePath)
+
+def upload(ftp, filePath):
     # upload a file
-    if filePath != fileName:
+    if '/' in filePath:
+        fileName = filePath[filePath.rfind('/')+1:]
         current = ftp.pwd()
         folders = filePath.split('/')
-        for x in range(0, len(folders) - 1):
-            if folders[x] in ftp.nlst(ftp.pwd()):
-                ftp.cwd(folders[x])
-            else:
-                ftp.mkd(folders[x])
-                ftp.cwd(folders[x])
+        try:
+            for x in range(0, len(folders) - 1):
+                if folders[x] in ftp.nlst(ftp.pwd()):
+                    ftp.cwd(folders[x])
+                else:
+                    ftp.mkd(folders[x])
+                    ftp.cwd(folders[x])
+        except all_errors:
+            direc = filePath[0:filePath.rfind('/')]
+            ftp.cwd(current)
+            ftp.cwd(direc)
         extension = os.path.splitext(fileName)[1]
         if extension in ('.txt', '.htm', '.html'):
             ftp.storlines('STOR ' + fileName, open(filePath))
@@ -97,11 +116,11 @@ def upload(ftp, filePath, fileName):
             ftp.storbinary('STOR ' + fileName, open(filePath, 'rb'), 1024)
         ftp.cwd(current)
     else:
-        extension = os.path.splitext(fileName)[1]
+        extension = os.path.splitext(filePath)[1]
         if extension in ('.txt', '.htm', '.html'):
-            ftp.storlines('STOR ' + fileName, open(filePath))
+            ftp.storlines('STOR ' + filePath, open(filePath))
         else:
-            ftp.storbinary('STOR ' + fileName, open(filePath, 'rb'), 1024)
+            ftp.storbinary('STOR ' + filePath, open(filePath, 'rb'), 1024)
 
 def run():
     # do a sample run, logging in to a local ftp server with my credentials
@@ -109,10 +128,10 @@ def run():
     ftp.login('ben', 'edgar')
     directory = 'OneDir'
     watchDogThread = Thread(target=watchTheDog, args=(directory,))
-    watchDogThread.start()
+    # watchDogThread.start()
     print "IT STARTEDD"
 
-    # upload(ftp, 'OneDir/Test_Folder/test.txt', 'test.txt')
+    upload(ftp, 'OneDir/Test_Folder/test2/test3/heyy.xhtml')
     # upload(ftp, 'OneDir/test.txt', 'test.txt')
     # upload(ftp, 'OneDir/test.py', 'test.py')
     # upload(ftp, 'OneDir/test.py', 'test.py')
