@@ -112,11 +112,16 @@ def is_file(ftp, filename):
 
 def deleteDir(ftp, direc):
     # delete a directory on the server and everything inside of it
+    # REALLY weird error -- ftp.nlst() wasn't working on a directory called "Test_Folder", but when I renamed
+    # it everything worked... maybe something to ask about
     if len(ftp.nlst(direc)) == 0:
+        print 'zerooooooooooooooo'
         ftp.rmd(direc)
     else:
         curr = ftp.pwd()
+        print direc
         filelist = ftp.nlst(direc)
+        print filelist
         ftp.cwd(direc)
         for fil in filelist:
             if is_file(ftp, fil):
@@ -125,6 +130,25 @@ def deleteDir(ftp, direc):
                 deleteDir(ftp, fil)
         ftp.cwd(curr)
         ftp.rmd(direc)
+
+def uploadAll(ftp, folder):
+    # you pass in a folder and it uploads everything in that folder to the ftp server recursively
+    try:
+        ftp.mkd(folder)
+    except all_errors:
+        pass
+    curr = ftp.pwd()
+    filelist = os.listdir(folder)
+    ftp.cwd(folder)
+    curr2 = os.getcwd()
+    os.chdir(folder)
+    for fil in filelist:
+        if os.path.isfile(fil):
+            upload(ftp, fil)
+        elif os.path.isdir(fil):
+            uploadAll(ftp, fil)
+    ftp.cwd(curr)
+    os.chdir(curr2)
 
 def upload(ftp, filePath):
     # upload a file @param ftp -- the ftp connection to use
@@ -164,13 +188,13 @@ def run():
     directory = 'OneDir'
     watchDogThread = Thread(target=watchTheDog, args=(directory,))
     # watchDogThread.start()
-
-    # print is_file(ftp, '/OneDir/Test_Folder/test.txt')
+    # uploadAll(ftp, 'OneDir')
+    # printos.chdir(folder) is_file(ftp, '/OneDir/Test_Folder/test.txt')
     # getFile(ftp, 'OneDir/Test_Folder/test.txt', 'newFile.txt')
     # upload(ftp, 'OneDir/test.txt', 'test.txt')
     # upload(ftp, 'OneDir/test.py', 'test.py')
     # upload(ftp, 'OneDir/test.py', 'test.py')
-    # deleteDir(ftp, 'OneDir/ben2')
+    # deleteDir(ftp, 'OneDir')
 
 if __name__ == '__main__':
     run()
