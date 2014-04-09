@@ -23,7 +23,8 @@ class MyHandler(FileSystemEventHandler):
             print "file modified!"""
         print "this is being modified " + event.src_path
         # if not event.is_directory:
-        #     upload(ftp, event.src_path, event.src_path.split('/')[len(event.src_path.split('/')) - 1])
+        #     print 'uploading ' + event.src_path
+        #     upload(ftp, event.src_path[event.src_path.rfind('OneDir'):])
         logging.warning(event.src_path + ' modified')
     def on_created(self, event):
        """ if event.is_directory:
@@ -31,8 +32,8 @@ class MyHandler(FileSystemEventHandler):
         else:
             print "file created!"""
        # if it's a file, just put it on the server
-       if not event.is_directory:
-            upload(ftp, event.src_path, event.src_path.split('/')[len(event.src_path.split('/')) - 1])
+       # if not event.is_directory:
+       #      upload(ftp, event.src_path)
 
        # if it's a directory, create the directory on the server
        logging.warning(event.src_path + ' created')
@@ -59,8 +60,6 @@ def watchTheDog(directory):
     observer = Observer()
     observer.schedule(event_handler, directory, recursive=True)
     observer.start()
-    #stringtest = "/OneDir/Test_Folder/test.txt"
-    #print stringtest[stringtest.find("OneDir", 0, len(stringtest))+6:]
     try:
         while True:
             time.sleep(1)
@@ -69,31 +68,67 @@ def watchTheDog(directory):
         observer.stop()
     observer.join()
 
+# DEPRECATED, USE getFile instead
+# def getBinaryFile(ftp, filename, outfile=None):
+#     # get a binary file
+#     if outfile is None:
+#         outfile = sys.stdout
+#     ftp.retrbinary('RETR ' + filename, outfile.write)
+#
+# def getTextFile(ftp, filename, outfile=None):
+#     # get a text file
+#     if outfile is None:
+#         outfile = sys.stdout
+#     else:
+#         outfile = open(outfile, 'w')
+#     ftp.retrlines('RETR ' + filename, lambda s, w = outfile.write: w(s + '\n'))
 
-def getBinaryFile(ftp, filename, outfile=None):
-    # get a binary file
-    if outfile is None:
-        outfile = sys.stdout
-    ftp.retrbinary('RETR ' + filename, outfile.write)
-
-def getTextFile(ftp, filename, outfile=None):
-    # get a text file
+def getFile(ftp, filePath, outfile=None):
+    # get any kind of file, the file path should be from whatever the current directory is
     if outfile is None:
         outfile = sys.stdout
     else:
         outfile = open(outfile, 'w')
-    ftp.retrlines('RETR ' + filename, lambda s, w = outfile.write: w(s + '\n'))
+    extension = os.path.splitext(filePath)[1]
+    if extension in ('.txt', '.htm', '.html'):
+        ftp.retrlines('RETR ' + filePath, lambda s, w = outfile.write: w(s + '\n'))
+    else:
+        ftp.retrbinary('RETR ' + filePath, outfile.write)
 
-def deleteFile(ftp, filePath, fileName):
+def deleteFile(ftp, filePath):
     # delete a file on the server
     ftp.delete(filePath)
 
-def deleteDir(ftp, filePath, fileName):
-    # delete a directory on the server -- need to delete all files in the directory first
-    ftp.rmd(filePath)
+def is_file(ftp, filename):
+    # check to see if a file is a file or a directory
+    current = ftp.pwd()
+    try:
+        ftp.cwd(filename)
+    except all_errors:
+        ftp.cwd(current)
+        return True
+    ftp.cwd(current)
+    return False
+
+def deleteDir(ftp, direc):
+    # delete a directory on the server and everything inside of it
+    if len(ftp.nlst(direc)) == 0:
+        ftp.rmd(direc)
+    else:
+        curr = ftp.pwd()
+        filelist = ftp.nlst(direc)
+        ftp.cwd(direc)
+        for fil in filelist:
+            if is_file(ftp, fil):
+                deleteFile(ftp, fil)
+            else:
+                deleteDir(ftp, fil)
+        ftp.cwd(curr)
+        ftp.rmd(direc)
 
 def upload(ftp, filePath):
-    # upload a file
+    # upload a file @param ftp -- the ftp connection to use
+    #               @param filePath -- the file path of the file to be uploaded
     if '/' in filePath:
         fileName = filePath[filePath.rfind('/')+1:]
         current = ftp.pwd()
@@ -129,12 +164,13 @@ def run():
     directory = 'OneDir'
     watchDogThread = Thread(target=watchTheDog, args=(directory,))
     # watchDogThread.start()
-    print "IT STARTEDD"
 
-    upload(ftp, 'OneDir/Test_Folder/test2/test3/heyy.xhtml')
+    # print is_file(ftp, '/OneDir/Test_Folder/test.txt')
+    # getFile(ftp, 'OneDir/Test_Folder/test.txt', 'newFile.txt')
     # upload(ftp, 'OneDir/test.txt', 'test.txt')
     # upload(ftp, 'OneDir/test.py', 'test.py')
     # upload(ftp, 'OneDir/test.py', 'test.py')
+    # deleteDir(ftp, 'OneDir/ben2')
 
 if __name__ == '__main__':
     run()
