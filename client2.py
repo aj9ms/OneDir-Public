@@ -30,6 +30,7 @@ def upload(ftp, file):
 
 
 
+# need to get pass.dat file from the server first
 def userExists(username):
     with open('pass.dat',"r") as file:
         for line in file:
@@ -39,6 +40,12 @@ def userExists(username):
                 return True
     return False
 
+# need to get pass.dat file from the server
+# need to open the file within the program -- don't write it to the client's filesystem
+# add a line to the pass.dat file if the user doesn't exist already
+# send the pass.dat file back to the server
+# login with the new user?
+# Start watchdog after this function
 def createUser(user, password):
     ftp = FTP('localhost')
     ftp.login()
