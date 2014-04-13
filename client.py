@@ -130,6 +130,12 @@ def deleteDir(ftp, direc):
         ftp.cwd(curr)
         ftp.rmd(direc)
 
+def rename(ftp, fromname, toname):
+    ftp.rename(fromname, toname)
+
+def createDirectory(ftp, direc):
+    ftp.mkd(direc)
+
 def uploadAll(ftp, folder):
     # you pass in a folder and it uploads everything in that folder to the ftp server recursively
     try:
@@ -195,5 +201,7 @@ def run():
     # upload(ftp, 'OneDir/test.py', 'test.py')
     # deleteDir(ftp, 'OneDir')
 
+    # rename(ftp, 'OneDir/ben2/ben3/ben4/', 'OneDir/ben44/')
+    createDirectory(ftp, 'OneDir/ben44/hereisanewdirec')
 if __name__ == '__main__':
     run()
