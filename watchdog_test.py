@@ -23,6 +23,7 @@ class MyHandler(FileSystemEventHandler):
         last = directorylist[len(directorylist) - 1]
         if not last.startswith('.goutputstream'):
             logging.warning(event.src_path + ' modified')
+            print source[source.find("/OneDir/", 0, len(source))+8:] + ' modified'
     def on_created(self, event):
         source = event.src_path
         source_tilde = source[len(source)-1]
@@ -31,25 +32,41 @@ class MyHandler(FileSystemEventHandler):
         if not last.startswith('.goutputstream'):
             if source_tilde == "~":
                 logging.warning(source[0:len(source)-1] + ' created')
+                print source[source.find("/OneDir/", 0, len(source))+8:len(source)-1] + ' created'
             else:
                 logging.warning(event.src_path + ' created')
+                print source[source.find("/OneDir/", 0, len(source))+8:] + ' created'
     def on_moved(self, event):
         source = event.src_path
         directorylist = source.split('/')
         last = directorylist[len(directorylist) - 1]
-        if not last.startswith('.goutputstream'):
-            logging.warning(event.src_path + ' moved')
+        dest = event.dest_path
+        destlist = dest.split('/')
+        if not last.startswith('.goutputstream') and not event.is_directory:
+            #not a temp file and not a directory
+            logging.warning(event.src_path + ' movedto ' + event.dest_path)
+            print source[source.find("/OneDir/", 0, len(source))+8:] + ' movedto ' + dest[dest.find("/OneDir/", 0, len(dest))+8:]
+        elif event.is_directory:
+            #event is directory (so can't be temp file)
+            sourcepath = source[0:source.find(directorylist[len(directorylist)-1])]
+            destpath = dest[0:dest.find(destlist[len(destlist)-1])]
+            if sourcepath == destpath:
+                #rename
+                print source[source.find("/OneDir/", 0, len(source))+8:] + ' renamedto ' + dest[dest.find("/OneDir/", 0, len(dest))+8:]
+                logging.warning(event.src_path + ' renamedto ' + event.dest_path)
+            else:
+                #moved directory
+                print source[source.find("/OneDir/", 0, len(source))+8:] + ' movedto ' + dest[dest.find("/OneDir/", 0, len(dest))+8:]
+                logging.warning(event.src_path + ' movedto ' + event.dest_path)
     def on_deleted(self, event):
         source = event.src_path
         source_tilde = source[len(source)-1]
         if source_tilde == "~":
             logging.warning(source[0:len(source)-1] + ' deleted')
+            print source[source.find("/OneDir/", 0, len(source))+8:len(source)-1] + ' deleted'
         else:
             logging.warning(event.src_path + ' deleted')
-    def on_any_event(self, event):
-        source = event.src_path
-        print source[source.find("/OneDir/", 0, len(source))+8:]
-
+            print source[source.find("/OneDir/", 0, len(source))+8:] + ' deleted'
 if __name__ == "__main__":
     path = sys.argv[1] if len(sys.argv) > 1 else '.'
     event_handler = MyHandler()
