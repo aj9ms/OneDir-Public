@@ -36,51 +36,41 @@ class MyHandler(FileSystemEventHandler):
             directorylist = source.split('/')
             last = directorylist[len(directorylist) - 1]
             if not last.startswith('.goutputstream'):
-                if source_tilde == "~":
-                    logging.warning(source[0:len(source)-1] + ' created')
-                    print source[source.find("/OneDir/", 0, len(source))+8:len(source)-1] + ' created'
-                else:
-                    logging.warning(event.src_path + ' created')
-                    print source[source.find("/OneDir/", 0, len(source))+8:] + ' created'
+                logging.warning(event.src_path + ' created')
+                print source[source.find("/OneDir/", 0, len(source))+8:] + ' created'
+                createDirectory(ftp, source[source.find("/OneDir/", 0, len(source))+8:])
         #creating a file
         else:
             source = event.src_path
             source_tilde = source[len(source)-1]
             directorylist = source.split('/')
             last = directorylist[len(directorylist) - 1]
-            if not last.startswith('.goutputstream'):
-                if source_tilde == "~":
-                    logging.warning(source[0:len(source)-1] + ' created')
-                    print source[source.find("/OneDir/", 0, len(source))+8:len(source)-1] + ' created'
-                else:
-                    logging.warning(event.src_path + ' created')
-                    print source[source.find("/OneDir/", 0, len(source))+8:] + ' created'
+            if not last.startswith('.goutputstream') and not last.endswith('___jb_bak___'):
+                logging.warning(event.src_path + ' created')
+                print source[source.find("/OneDir/", 0, len(source))+8:] + ' created'
+                upload(ftp, source[source.find("/OneDir/", 0, len(source))+8:])
     #moving files
     #renaming a directory
     #moving a directory
     def on_moved(self, event):
-        source = event.src_path
-        directorylist = source.split('/')
-        last = directorylist[len(directorylist) - 1]
-        dest = event.dest_path
-        destlist = dest.split('/')
-        #not a temp file but is still a file (file moving)
-        if not last.startswith('.goutputstream') and not event.is_directory:
-            #not a temp file but is still a file
-            logging.warning(event.src_path + ' movedto ' + event.dest_path)
-            print source[source.find("/OneDir/", 0, len(source))+8:] + ' movedto ' + dest[dest.find("/OneDir/", 0, len(dest))+8:]
-        #event is a directory (directory moving AND renaming)
-        elif event.is_directory:
-            sourcepath = source[0:source.find(directorylist[len(directorylist)-1])]
-            destpath = dest[0:dest.find(destlist[len(destlist)-1])]
-            #rename directory
-            if sourcepath == destpath:
-                print source[source.find("/OneDir/", 0, len(source))+8:] + ' renamedto ' + dest[dest.find("/OneDir/", 0, len(dest))+8:]
-                logging.warning(event.src_path + ' renamedto ' + event.dest_path)
-            #move directory
-            else:
-                print source[source.find("/OneDir/", 0, len(source))+8:] + ' movedto ' + dest[dest.find("/OneDir/", 0, len(dest))+8:]
+        try:
+            source = event.src_path
+            directorylist = source.split('/')
+            last = directorylist[len(directorylist) - 1]
+            dest = event.dest_path
+            destlist = dest.split('/')
+            #not a temp file but is still a file (file moving)
+            if not last.startswith('.goutputstream'):
+                #not a temp file but is still a file
                 logging.warning(event.src_path + ' movedto ' + event.dest_path)
+                print source[source.find("/OneDir/", 0, len(source))+8:] + ' movedto ' + dest[dest.find("/OneDir/", 0, len(dest))+8:]
+                rename(ftp, source[source.find("/OneDir/", 0, len(source))+8:], dest[dest.find("/OneDir/", 0, len(dest))+8:])
+            #event is a directory (directory moving AND renaming)
+            # elif event.is_directory:
+            #         print source[source.find("/OneDir/", 0, len(source))+8:] + ' movedto ' + dest[dest.find("/OneDir/", 0, len(dest))+8:]
+            #         logging.warning(event.src_path + ' movedto ' + event.dest_path)
+        except all_errors:
+            pass
     #deleting files and folders (when deleting a folder, it lists all files to delete as well)
     def on_deleted(self, event):
         source = event.src_path
@@ -230,7 +220,7 @@ def run():
     ftp.login('ben', 'edgar')
     directory = 'OneDir'
     watchDogThread = Thread(target=watchTheDog, args=(directory,))
-    # watchDogThread.start()
+    watchDogThread.start()
     # uploadAll(ftp, 'OneDir')
     # printos.chdir(folder) is_file(ftp, '/OneDir/Test_Folder/test.txt')
     # getFile(ftp, 'OneDir/Test_Folder/test.txt', 'newFile.txt')
@@ -239,7 +229,7 @@ def run():
     # upload(ftp, 'OneDir/test.py', 'test.py')
     # deleteDir(ftp, 'OneDir')
 
-    # rename(ftp, 'OneDir/ben2/ben3/ben4/', 'OneDir/ben44/')
-    createDirectory(ftp, 'OneDir/ben44/hereisanewdirec')
+    # rename(ftp, 'OneDir/ben2/ben888/ben4/', 'OneDir/ben44/')
+    # createDirectory(ftp, '/OneDir/ben44/anotheranotheranother')
 if __name__ == '__main__':
     run()
