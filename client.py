@@ -115,7 +115,6 @@ def deleteDir(ftp, direc):
     # REALLY weird error -- ftp.nlst() wasn't working on a directory called "Test_Folder", but when I renamed
     # it everything worked... maybe something to ask about
     if len(ftp.nlst(direc)) == 0:
-        print 'zerooooooooooooooo'
         ftp.rmd(direc)
     else:
         curr = ftp.pwd()
