@@ -3,6 +3,8 @@ from ftplib import FTP
 import os
 import sys
 
+ftp = FTP('localhost')
+
 def getFile(ftp, filePath, outfile=None):
     # get any kind of file, the file path should be from whatever the current directory is
     if outfile is None:
@@ -32,9 +34,8 @@ def upload(ftp, file):
 
 #write the pass.dat file to client side and then deletes it. Find a better way to do this
 def userExists(ftp, username):
-    #f = file()
-    filecontents = getFile(ftp, 'pass.dat', f)
-    with open(f,"r") as tempfile:
+    filecontents = getFile(ftp, 'pass.dat', 'temp.txt')
+    with open('temp.txt',"r") as tempfile:
         for line in tempfile:
             account = line.split(':')
             user = account[0]
@@ -49,20 +50,18 @@ def userExists(ftp, username):
 # login with the new user?
 # Start watchdog after this function
 def createUser(user, password):
-    ftp = FTP('localhost')
     ftp.login('root', 'password')
     if not userExists(ftp, user):
         if not userDirectoryExists(ftp, user):
-	    filecontents = getFile(ftp, 'pass.dat', 'temp.txt')
-	    with open('temp.txt',"a") as accountfile:
+	    filecontents = getFile(ftp, 'pass.dat', 'temp.dat')
+	    with open('temp.dat',"a") as accountfile:
                 accountfile.write(user + ':' + password + '\n')
-	    #need to send file back to server	
+	    upload(ftp, 'temp.dat')
+	    ftp.rename('temp.dat','pass.dat')
 	    os.remove(os.path.join(os.getcwd(), 'temp.txt'))
-	    print user
             makeUserDirectory(ftp, user)
             ftp.close()
 	    #logs in the new user
-            #ftp = FTP('localhost')
             #ftp.login(user, password)
         else:
             print "User directory already exists. Request ignored."
@@ -83,7 +82,6 @@ def makeUserDirectory(ftp, user):
 def run():
     # do a sample run, logging in to a local ftp server with my credentials
     createUser('alice', 'pass')
-    #ftp = FTP('localhost')
     #username = 'alice'
     #password = 'pass'
     #ftp.login(username, password)
