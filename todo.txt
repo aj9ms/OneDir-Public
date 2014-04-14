@@ -1,0 +1,16 @@
+TODO:
+watchdog:
+    integration -- get upload functionality to work
+        looked like it didn't trigger a 'create' event so it never called upload when a new file was created
+
+fake gui:
+    command prompt 1110 style!
+    login, admin stuff, commands, etc...
+
+admin functions:
+    using APPE to append to a file, create new users, and change passwords
+
+same account on different computer:
+    need to get this working, upload on one should download on another.
+
+
