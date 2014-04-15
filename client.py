@@ -8,8 +8,41 @@ import logging
 from threading import Thread
 from watchdog.events import LoggingEventHandler, FileSystemEventHandler, FileSystemEvent
 from watchdog.observers import Observer
+from twisted.internet import reactor
+from twisted.internet.protocol import Protocol
+from twisted.internet.endpoints import TCP4ClientEndpoint, connectProtocol
 
 ftp = FTP('localhost')
+
+class Greeter(Protocol):
+    # def sendMessage(self, msg):
+    #     self.transport.write("MESSAGE %s\n" % msg)
+
+    def __init__(self, todo, username, password):
+        self.info = todo
+        self.username = username
+        self.password = password
+        self.state = 'username'
+
+    def writeUserName(self):
+        self.transport.write("ben")
+        self.state = 'password'
+
+    def connectionMade(self):
+        self.transport.write(self.info + ':' + self.username + ':' + self.password)
+        reactor.callLater(1, self.transport.loseConnection)
+
+    def sendFile(self, filePath):
+        self.transport.write("file")
+
+    def dataReceived(self, data):
+        if data.strip() == 'got':
+            self.transport.loseConnection
+
+def sendInfo(todo, username, password):
+    point = TCP4ClientEndpoint(reactor, "localhost", 8007)
+    d = connectProtocol(point, Greeter(todo, username, password))
+    reactor.run()
 
 class MyHandler(FileSystemEventHandler):
     def __init__(self):
@@ -233,6 +266,7 @@ def run():
             pass
         elif command == 'create user':
             # append to the pass.dat file probably
+            sendInfo('newuser', 'test', 'password')
             pass
 
 

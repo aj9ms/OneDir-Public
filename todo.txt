@@ -13,4 +13,7 @@ admin functions:
 same account on different computer:
     need to get this working, upload on one should download on another.
 
+INSTALL:
+pip install pyftpdlib
+pip install watchdog
 

@@ -26,24 +26,11 @@ class Auth(Protocol):
         self.factory.numProtocols = self.factory.numProtocols-1
 
     def dataReceived(self, data):
-        if self.state == "username":
-            self.username = data.strip()
-            self.transport.write("Password: ")
-            self.state = "password"
-            print "getting password"
-        elif self.state == "password":
-            self.password = data.strip()
-            # Try to login using the database
-            self.state = "loggedin"
-            print "A user logged in"
-            # If can't login, create new account with credentials
+        if data.strip().startswith('newuser'):
+            info = data.strip().split(':')
+            username = info[1]
+            password = info[2]
 
-        elif data.strip() == "quit":
-            self.transport.loseConnection()
-        elif data.strip() == "file-transfer":
-        	self.transport.write("GO")
-        else:
-            self.transport.write("Welcome " + self.username + "!\n")
 
 class AuthFactory(Factory):
     def __init__(self):

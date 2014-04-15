@@ -35,16 +35,61 @@ users', setting a limit for incoming connections.
 """
 
 import os
+from threading import Thread
 
 from pyftpdlib.authorizers import DummyAuthorizer
 from pyftpdlib.handlers import FTPHandler
 from pyftpdlib.servers import FTPServer
 
+from twisted.internet.protocol import Protocol
+from twisted.internet.protocol import Factory
+from twisted.internet.endpoints import TCP4ServerEndpoint
+from twisted.internet import reactor
+
+# Instantiate a dummy authorizer for managing 'virtual' users
+authorizer = DummyAuthorizer()
+
+class Auth(Protocol):
+
+    def __init__(self, factory):
+        self.factory = factory
+        self.state = "initialize"
+
+    def connectionMade(self):
+        self.factory.numProtocols = self.factory.numProtocols+1
+
+    def connectionLost(self, reason):
+        self.factory.numProtocols = self.factory.numProtocols-1
+
+    def dataReceived(self, data):
+        print data + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+        if data.strip().startswith('newuser'):
+            info = data.strip().split(':')
+            username = info[1]
+            password = info[2]
+            open('pass.dat', 'a').write(username + ':' + password + '\n')
+            try:
+                os.mkdir(os.path.join(os.getcwd(), info[1]))
+            except:
+                pass
+            authorizer.add_user(info[1], info[2], os.path.join(os.getcwd(), info[1]), perm='elradfmwM')
+        elif data.strip().startswith('newpass'):
+            info = data.strip().split(':')
+            username = info[1]
+            password = info[2]
+            authorizer.remove_user(info[1])
+            authorizer.add_user(info[1], info[2], os.path.join(os.getcwd(), info[1]), perm='elradfmwM')
+
+class AuthFactory(Factory):
+    def __init__(self):
+        self.numProtocols = 0
+    def buildProtocol(self, addr):
+        return Auth(self)
+
+def runTwisted(server):
+    server.serve_forever()
 
 def main():
-    # Instantiate a dummy authorizer for managing 'virtual' users
-    authorizer = DummyAuthorizer()
-
     # Define a new user having full r/w permissions and a read-only
     # anonymous user
     for line in open('pass.dat'):
@@ -82,6 +127,11 @@ def main():
 
     # start ftp server
     server.serve_forever()
+    twistThread = Thread(target=runTwisted, args=(server,))
+    twistThread.start()
+    endpoint = TCP4ServerEndpoint(reactor, 8007)
+    endpoint.listen(AuthFactory())
+    reactor.run()
 
 if __name__ == '__main__':
     main()

@@ -25,12 +25,8 @@ class Greeter(Protocol):
         self.transport.write("file")
 
     def dataReceived(self, data):
-        if self.state == 'username':
-            self.transport.write("ben")
-            self.state = stateMachine[self.state]
-        elif self.state == 'password':
-            self.transport.write("pass")
-            self.state = stateMachine[self.state]
+        if data.strip() == 'got':
+            self.transport.loseConnection
 
 # def gotProtocol(p):
 #     p.sendMessage("Hello")
@@ -39,5 +35,4 @@ class Greeter(Protocol):
 
 point = TCP4ClientEndpoint(reactor, "localhost", 8007)
 d = connectProtocol(point, Greeter())
-# d.addCallback(gotProtocol)
 reactor.run()
