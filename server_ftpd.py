@@ -47,7 +47,17 @@ def main():
 
     # Define a new user having full r/w permissions and a read-only
     # anonymous user
-    authorizer.add_user('ben', 'edgar', os.path.join(os.getcwd(), 'ben'), perm='elradfmwM')
+    for line in open('pass.dat'):
+        info = line.split(':')
+        try:
+            os.mkdir(os.path.join(os.getcwd(), info[0]))
+        except:
+            pass
+        authorizer.add_user(info[0], info[1].strip(), os.path.join(os.getcwd(), info[0]), perm='elradfmwM')
+    authorizer.add_user('root', 'password', os.path.join(os.getcwd()), perm='elradfmwM')
+    # authorizer.remove_user('ben')
+    # authorizer.add_user('ben', 'edgar', os.path.join(os.getcwd(), 'ben'), perm='elradfmwM')
+    # authorizer.add_user('ben', 'lol', os.getcwd())
     # authorizer.add_anonymous(os.getcwd())
 
     # Instantiate FTP handler class
@@ -55,7 +65,7 @@ def main():
     handler.authorizer = authorizer
 
     # Define a customized banner (string returned when client connects)
-    handler.banner = "pyftpdlib based ftpd ready."
+    handler.banner = "OneDir Ready"
 
     # Specify a masquerade address and the range of ports to use for
     # passive connections.  Decomment in case you're behind a NAT.

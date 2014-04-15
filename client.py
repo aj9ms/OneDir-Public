@@ -37,7 +37,7 @@ class MyHandler(FileSystemEventHandler):
             last = directorylist[len(directorylist) - 1]
             if not last.startswith('.goutputstream'):
                 logging.warning(event.src_path + ' created')
-                print source[source.find("/OneDir/", 0, len(source))+8:] + ' created'
+                print source[source.find("/OneDir/", 0, len(source))+8:] + ' director created'
                 createDirectory(ftp, source[source.find("/OneDir/", 0, len(source))+8:])
         #creating a file
         else:
@@ -45,9 +45,13 @@ class MyHandler(FileSystemEventHandler):
             source_tilde = source[len(source)-1]
             directorylist = source.split('/')
             last = directorylist[len(directorylist) - 1]
-            if not last.startswith('.goutputstream') and not last.endswith('___jb_bak___'):
+            if not last.startswith('.goutputstream'):
+                if '___jb_' in last:
+                    time.sleep(0.2)
+                    source = source[:source.find('___jb')]
+                    print source
                 logging.warning(event.src_path + ' created')
-                print source[source.find("/OneDir/", 0, len(source))+8:] + ' created'
+                print source[source.find("/OneDir/", 0, len(source))+8:] + ' file created'
                 upload(ftp, source[source.find("/OneDir/", 0, len(source))+8:])
     #moving files
     #renaming a directory
@@ -60,7 +64,7 @@ class MyHandler(FileSystemEventHandler):
             dest = event.dest_path
             destlist = dest.split('/')
             #not a temp file but is still a file (file moving)
-            if not last.startswith('.goutputstream'):
+            if not last.startswith('.goutputstream') and '___jb_' not in last and '___jb_' not in dest:
                 #not a temp file but is still a file
                 logging.warning(event.src_path + ' movedto ' + event.dest_path)
                 print source[source.find("/OneDir/", 0, len(source))+8:] + ' movedto ' + dest[dest.find("/OneDir/", 0, len(dest))+8:]
@@ -119,7 +123,7 @@ def getFile(ftp, filePath, outfile=None):
         outfile = open(outfile, 'w')
     extension = os.path.splitext(filePath)[1]
     if extension in ('.txt', '.htm', '.html'):
-        ftp.retrlines('RETR ' + filePath, lambda s, w = outfile.write: w(s + '\n'))
+        ftp.retrlines('RETR ' + filePath, lambda s, w = outfile.write: w(s))
     else:
         ftp.retrbinary('RETR ' + filePath, outfile.write)
 
@@ -140,7 +144,7 @@ def is_file(ftp, filename):
 
 def deleteDir(ftp, direc):
     # delete a directory on the server and everything inside of it
-    # REALLY weird error -- ftp.nlst() wasn't working on a directory called "Test_Folder", but when I renamed
+    # REALLY weird error -- ftp.nlst() wasn't working on a directory called "ben111", but when I renamed
     # it everything worked... maybe something to ask about
     if len(ftp.nlst(direc)) == 0:
         ftp.rmd(direc)
@@ -215,21 +219,36 @@ def upload(ftp, filePath):
             ftp.storbinary('STOR ' + filePath, open(filePath, 'rb'), 1024)
 
 def run():
+    watchDogThread = Thread(target=watchTheDog, args=('OneDir',))
+    while True:
+        command = raw_input('Enter a command (login, change password, create user): ')
+        if command == 'login':
+            username = raw_input('Username: ')
+            password = raw_input('Password: ')
+            ftp.login(username, password)
+            watchDogThread.start()
+            break
+        elif command == 'change password':
+            # do something to change the password
+            pass
+        elif command == 'create user':
+            # append to the pass.dat file probably
+            pass
+
+
     # do a sample run, logging in to a local ftp server with my credentials
     # ftp = FTP('localhost')
-    ftp.login('ben', 'edgar')
-    directory = 'OneDir'
-    watchDogThread = Thread(target=watchTheDog, args=(directory,))
-    watchDogThread.start()
-    # uploadAll(ftp, 'OneDir')
-    # printos.chdir(folder) is_file(ftp, '/OneDir/Test_Folder/test.txt')
-    # getFile(ftp, 'OneDir/Test_Folder/test.txt', 'newFile.txt')
-    # upload(ftp, 'OneDir/test.txt', 'test.txt')
+
+    # ftp.login('ben', 'edgar')
+    # getFile(ftp, 'OneDir/ben111/test1234.txt', 'OneDir/ben111/test1234.txt')
+    # printos.chdir(folder) is_file(ftp, '/OneDir/ben111/test1234.txt')
+    # getFile(ftp, 'OneDir/ben111/test1234.txt', 'newFile.txt')
+    # upload(ftp, 'OneDir/test1234.txt', 'test1234.txt')
     # upload(ftp, 'OneDir/test.py', 'test.py')
     # upload(ftp, 'OneDir/test.py', 'test.py')
     # deleteDir(ftp, 'OneDir')
 
-    # rename(ftp, 'OneDir/ben2/ben888/ben4/', 'OneDir/ben44/')
+    # rename(ftp, 'OneDir/ben111/', 'OneDir/ben44/')
     # createDirectory(ftp, '/OneDir/ben44/anotheranotheranother')
 if __name__ == '__main__':
     run()
