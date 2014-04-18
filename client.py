@@ -29,8 +29,8 @@ class Greeter(Protocol):
         self.state = 'password'
 
     def connectionMade(self):
+        print "A connection was made!!!"
         self.transport.write(self.info + ':' + self.username + ':' + self.password)
-        reactor.callLater(1, self.transport.loseConnection)
 
     def sendFile(self, filePath):
         self.transport.write("file")
@@ -267,7 +267,7 @@ def run():
         elif command == 'create user':
             # append to the pass.dat file probably
             sendInfo('newuser', 'test', 'password')
-            pass
+
 
 
     # do a sample run, logging in to a local ftp server with my credentials

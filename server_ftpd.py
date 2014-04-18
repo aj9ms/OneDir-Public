@@ -56,6 +56,7 @@ class Auth(Protocol):
         self.state = "initialize"
 
     def connectionMade(self):
+        print "A connection was made!"
         self.factory.numProtocols = self.factory.numProtocols+1
 
     def connectionLost(self, reason):
@@ -64,6 +65,7 @@ class Auth(Protocol):
     def dataReceived(self, data):
         print data + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
         if data.strip().startswith('newuser'):
+            self.transport.write('got')
             info = data.strip().split(':')
             username = info[1]
             password = info[2]
