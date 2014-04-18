@@ -187,9 +187,44 @@ def uploadAll(ftp, folder):
     ftp.cwd(curr)
     os.chdir(curr2)
 
+
+def syncOneDir(ftp, folder):
+    curr_ftp = ftp.pwd()
+    curr_cli = os.getcwd()
+    filelist = os.listdir(folder)
+    ftp_filelist = ftp.nlst(folder)
+    ftp.cwd(folder)
+    os.chdir(folder)
+    # putting server in binary mode
+    # ftp.voidcmd('binary')
+    for fil in ftp_filelist:
+        if is_file(ftp, fil):
+            if fil in filelist:
+                ftp.voidcmd('TYPE I')
+                if os.path.getsize(fil) != ftp.size(fil):
+                    getFile(ftp, fil, os.path.join(curr_cli, os.path.join(folder, fil)))
+            else:
+                getFile(ftp, fil, os.path.join(curr_cli, os.path.join(folder, fil)))
+        elif fil not in filelist:
+            os.mkdir(fil)
+            syncOneDir(ftp, fil)
+        else:
+            syncOneDir(ftp, fil)
+    for fil in filelist:
+        if fil not in ftp_filelist:
+            upload(ftp, fil)
+    # ftp.voidcmd('ascii')
+    ftp.cwd(curr_ftp)
+    os.chdir(curr_cli)
+
+
+
 def upload(ftp, filePath):
     # upload a file @param ftp -- the ftp connection to use
     #               @param filePath -- the file path of the file to be uploaded
+    if os.path.isdir(filePath):
+        uploadAll(ftp, filePath)
+        return
     if '/' in filePath:
         fileName = filePath[filePath.rfind('/')+1:]
         current = ftp.pwd()
@@ -226,6 +261,7 @@ def run():
             username = raw_input('Username: ')
             password = raw_input('Password: ')
             ftp.login(username, password)
+            syncOneDir(ftp, 'OneDir')
             watchDogThread.start()
             break
         elif command == 'change password':
@@ -234,7 +270,15 @@ def run():
         elif command == 'create user':
             # append to the pass.dat file probably
             pass
-
+    # filelist = ftp.nlst('OneDir')
+    # ftp.cwd('OneDir')
+    # ftp.voidcmd('TYPE I')
+    # for fil in filelist:
+    #     print fil
+    #     if is_file(ftp, fil):
+    #         print fil + " on server: " + str(ftp.size(fil))
+    # for fil in os.listdir('OneDir'):
+    #     print fil + " on client: " + str(os.path.getsize(os.path.join('OneDir', fil)))
 
     # do a sample run, logging in to a local ftp server with my credentials
     # ftp = FTP('localhost')
