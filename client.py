@@ -5,7 +5,7 @@ import os
 import sys
 import time
 import logging
-from threading import Thread
+import threading
 from watchdog.events import LoggingEventHandler, FileSystemEventHandler, FileSystemEvent
 from watchdog.observers import Observer
 
@@ -96,7 +96,6 @@ def watchTheDog(directory):
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        print "stopping the observer"
         observer.stop()
     observer.join()
 
@@ -151,6 +150,7 @@ def deleteDir(ftp, direc):
     else:
         curr = ftp.pwd()
         print direc
+        print os.path.abspath(curr)
         filelist = ftp.nlst(direc)
         print filelist
         ftp.cwd(direc)
@@ -254,8 +254,15 @@ def upload(ftp, filePath):
             ftp.storbinary('STOR ' + filePath, open(filePath, 'rb'), 1024)
 
 def run():
-    watchDogThread = Thread(target=watchTheDog, args=('OneDir',))
-    while True:
+    # do a sample run, logging in to a local ftp server with my credentials
+    # ftp = FTP('localhost')
+    ftp.login('ben', 'edgar')
+    watchDogThread = threading.Thread(target=watchTheDog, args=('OneDir',))
+    watchDogThread_stop = threading.Event()
+    # watchDogThread.start()
+    # uploadAll(ftp, 'OneDir')
+    # deleteDir(ftp, 'OneDir')
+    """while True:
         command = raw_input('Enter a command (login, change password, create user): ')
         if command == 'login':
             username = raw_input('Username: ')
@@ -269,7 +276,14 @@ def run():
             pass
         elif command == 'create user':
             # append to the pass.dat file probably
-            pass
+            pass"""
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        # print "stopping the observer"
+        watchDogThread_stop.set()
+        os._exit(0)
     # filelist = ftp.nlst('OneDir')
     # ftp.cwd('OneDir')
     # ftp.voidcmd('TYPE I')
@@ -285,6 +299,7 @@ def run():
 
     # ftp.login('ben', 'edgar')
     # getFile(ftp, 'OneDir/ben111/test1234.txt', 'OneDir/ben111/test1234.txt')
+    # uploadAll(ftp, 'OneDir')
     # printos.chdir(folder) is_file(ftp, '/OneDir/ben111/test1234.txt')
     # getFile(ftp, 'OneDir/ben111/test1234.txt', 'newFile.txt')
     # upload(ftp, 'OneDir/test1234.txt', 'test1234.txt')
