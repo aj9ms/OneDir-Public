@@ -209,8 +209,36 @@ def uploadAll(ftp, folder):
     ftp.cwd(curr)
     os.chdir(curr2)
 
+def syncOneDirClient(ftp, folder):
+    curr_ftp = ftp.pwd()
+    curr_cli = os.getcwd()
+    filelist = os.listdir(folder)
+    ftp_filelist = ftp.nlst(folder)
+    ftp.cwd(folder)
+    os.chdir(folder)
+    # putting server in binary mode
+    # ftp.voidcmd('binary')
+    for fil in ftp_filelist:
+        if is_file(ftp, fil):
+            if fil in filelist:
+                ftp.voidcmd('TYPE I')
+                if os.path.getsize(fil) != ftp.size(fil):
+                    upload(ftp, fil)
+            else:
+                getFile(ftp, fil, os.path.join(curr_cli, os.path.join(folder, fil)))
+        elif fil not in filelist:
+            os.mkdir(fil)
+            syncOneDirClient(ftp, fil)
+        else:
+            syncOneDirClient(ftp, fil)
+    for fil in filelist:
+        if fil not in ftp_filelist:
+            upload(ftp, fil)
+    # ftp.voidcmd('ascii')
+    ftp.cwd(curr_ftp)
+    os.chdir(curr_cli)
 
-def syncOneDir(ftp, folder):
+def syncOneDirServer(ftp, folder):
     curr_ftp = ftp.pwd()
     curr_cli = os.getcwd()
     filelist = os.listdir(folder)
@@ -229,9 +257,9 @@ def syncOneDir(ftp, folder):
                 getFile(ftp, fil, os.path.join(curr_cli, os.path.join(folder, fil)))
         elif fil not in filelist:
             os.mkdir(fil)
-            syncOneDir(ftp, fil)
+            syncOneDirServer(ftp, fil)
         else:
-            syncOneDir(ftp, fil)
+            syncOneDirServer(ftp, fil)
     for fil in filelist:
         if fil not in ftp_filelist:
             upload(ftp, fil)
@@ -281,18 +309,20 @@ def run():
     # ftp.login('ben', 'edgar')
     watchDogThread = threading.Thread(target=watchTheDog, args=('OneDir',))
     watchDogThread_stop = threading.Event()
-    # watchDogThread.start()
-    # uploadAll(ftp, 'OneDir')
-    # deleteDir(ftp, 'OneDir')
+
     while True:
         command = raw_input('Enter a command (login, change password, create user): ')
         if command == 'login':
             username = raw_input('Username: ')
             password = raw_input('Password: ')
-            ftp.login(username, password)
-            syncOneDir(ftp, 'OneDir')
-            watchDogThread.start()
-            break
+            try:
+                ftp.login(username, password)
+                syncOneDirServer(ftp, 'OneDir')
+                time.sleep(1)
+                watchDogThread.start()
+                break
+            except all_errors:
+                print "Login failed, try again."
         elif command == 'change password':
             # do something to change the password
             pass
@@ -300,36 +330,19 @@ def run():
             # append to the pass.dat file probably
             pass
     try:
+        print "If you want to pause syncing type ctrl-C"
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
         # print "stopping the observer"
         watchDogThread_stop.set()
-        os._exit(0)
-    # filelist = ftp.nlst('OneDir')
-    # ftp.cwd('OneDir')
-    # ftp.voidcmd('TYPE I')
-    # for fil in filelist:
-    #     print fil
-    #     if is_file(ftp, fil):
-    #         print fil + " on server: " + str(ftp.size(fil))
-    # for fil in os.listdir('OneDir'):
-    #     print fil + " on client: " + str(os.path.getsize(os.path.join('OneDir', fil)))
+        ftp.quit()
+        ftp.connect('localhost')
+        resp = raw_input("\nDo you want to exit? (yes/no)")
+        if resp.startswith('y') or resp.startswith('Y'):
+            os._exit(0)
+        else:
+            run()
 
-    # do a sample run, logging in to a local ftp server with my credentials
-    # ftp = FTP('localhost')
-
-    # ftp.login('ben', 'edgar')
-    # getFile(ftp, 'OneDir/ben111/test1234.txt', 'OneDir/ben111/test1234.txt')
-    # uploadAll(ftp, 'OneDir')
-    # printos.chdir(folder) is_file(ftp, '/OneDir/ben111/test1234.txt')
-    # getFile(ftp, 'OneDir/ben111/test1234.txt', 'newFile.txt')
-    # upload(ftp, 'OneDir/test1234.txt', 'test1234.txt')
-    # upload(ftp, 'OneDir/test.py', 'test.py')
-    # upload(ftp, 'OneDir/test.py', 'test.py')
-    # deleteDir(ftp, 'OneDir')
-
-    # rename(ftp, 'OneDir/ben111/', 'OneDir/ben44/')
-    # createDirectory(ftp, '/OneDir/ben44/anotheranotheranother')
 if __name__ == '__main__':
     run()
