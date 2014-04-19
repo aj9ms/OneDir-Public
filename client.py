@@ -18,13 +18,30 @@ class MyHandler(FileSystemEventHandler):
                             datefmt='%Y-%m-%d %H:%M:%S')
     #on_modified doesn't get called unless we create a new file
     #useless because on_created gets called when creating new file anyway
-    """def on_modified(self, event):
-        source = event.src_path
-        directorylist = source.split('/')
-        last = directorylist[len(directorylist) - 1]
-        if not last.startswith('.goutputstream'):
-            logging.warning(event.src_path + ' modified')
-            print source[source.find("/OneDir/", 0, len(source))+8:] + ' modified'"""
+    def on_modified(self, event):
+        if event.is_directory:
+            source = event.src_path
+            source_tilde = source[len(source)-1]
+            directorylist = source.split('/')
+            last = directorylist[len(directorylist) - 1]
+            if not last.startswith('.goutputstream'):
+                logging.warning(event.src_path + ' created')
+                print source[source.find("/OneDir/", 0, len(source))+8:] + ' director created'
+                createDirectory(ftp, source[source.find("/OneDir/", 0, len(source))+8:])
+        #creating a file
+        else:
+            source = event.src_path
+            source_tilde = source[len(source)-1]
+            directorylist = source.split('/')
+            last = directorylist[len(directorylist) - 1]
+            if not last.startswith('.goutputstream'):
+                if '___jb_' in last:
+                    time.sleep(0.2)
+                    source = source[:source.find('___jb')]
+                    print source
+                logging.warning(event.src_path + ' created')
+                print source[source.find("/OneDir/", 0, len(source))+8:] + ' file created'
+                upload(ftp, source[source.find("/OneDir/", 0, len(source))+8:])
     #creates both files and directories
     #for directories, the created directory will ALWAYS first be called "Untitled Folder"
     #renaming folders comes in on_moved
@@ -79,12 +96,17 @@ class MyHandler(FileSystemEventHandler):
     def on_deleted(self, event):
         source = event.src_path
         source_tilde = source[len(source)-1]
-        if source_tilde == "~":
-            logging.warning(source[0:len(source)-1] + ' deleted')
-            print source[source.find("/OneDir/", 0, len(source))+8:len(source)-1] + ' deleted'
+        # if source_tilde == "~":
+        #     logging.warning(source[0:len(source)-1] + ' deleted')
+        #     print source[source.find("/OneDir/", 0, len(source))+8:len(source)-1] + ' deleted'
+        #
+        # else:
+        logging.warning(event.src_path + ' deleted')
+        print source[source.find("/OneDir/", 0, len(source))+8:] + ' deleted'
+        if event.is_directory:
+            deleteDir(ftp, source[source.find("/OneDir/", 0, len(source))+8:])
         else:
-            logging.warning(event.src_path + ' deleted')
-            print source[source.find("/OneDir/", 0, len(source))+8:] + ' deleted'
+            deleteFile(ftp, source[source.find("/OneDir/", 0, len(source))+8:])
 
 def watchTheDog(directory):
     event_handler = MyHandler()
