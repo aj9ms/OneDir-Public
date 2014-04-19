@@ -256,13 +256,13 @@ def upload(ftp, filePath):
 def run():
     # do a sample run, logging in to a local ftp server with my credentials
     # ftp = FTP('localhost')
-    ftp.login('ben', 'edgar')
+    # ftp.login('ben', 'edgar')
     watchDogThread = threading.Thread(target=watchTheDog, args=('OneDir',))
     watchDogThread_stop = threading.Event()
     # watchDogThread.start()
     # uploadAll(ftp, 'OneDir')
     # deleteDir(ftp, 'OneDir')
-    """while True:
+    while True:
         command = raw_input('Enter a command (login, change password, create user): ')
         if command == 'login':
             username = raw_input('Username: ')
@@ -276,7 +276,7 @@ def run():
             pass
         elif command == 'create user':
             # append to the pass.dat file probably
-            pass"""
+            pass
     try:
         while True:
             time.sleep(1)
