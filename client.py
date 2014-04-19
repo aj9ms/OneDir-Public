@@ -303,7 +303,7 @@ def upload(ftp, filePath):
         else:
             ftp.storbinary('STOR ' + filePath, open(filePath, 'rb'), 1024)
 
-def run():
+def run(ftp):
     # do a sample run, logging in to a local ftp server with my credentials
     # ftp = FTP('localhost')
     # ftp.login('ben', 'edgar')
@@ -337,12 +337,12 @@ def run():
         # print "stopping the observer"
         watchDogThread_stop.set()
         ftp.quit()
-        ftp.connect('localhost')
+        ftp2 = FTP('localhost')
         resp = raw_input("\nDo you want to exit? (yes/no)")
         if resp.startswith('y') or resp.startswith('Y'):
             os._exit(0)
         else:
-            run()
+            run(ftp2)
 
 if __name__ == '__main__':
-    run()
+    run(ftp)
