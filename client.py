@@ -9,15 +9,17 @@ import threading
 from watchdog.events import LoggingEventHandler, FileSystemEventHandler, FileSystemEvent
 from watchdog.observers import Observer
 
-ftp = FTP('localhost')
+ftp = FTP()
+ftp.connect('localhost', 2121)
 
 class MyHandler(FileSystemEventHandler):
     # need to have ftp.login(username, password) in here too so that class knows what login credentials are
-    def __init__(self, user, pw):
+    def __init__(self):
+    #def __init(self, user, pw):
         logging.basicConfig(filename='user.log', level=logging.INFO,
                             format='%(asctime)s - %(message)s',
                             datefmt='%Y-%m-%d %H:%M:%S')
-        ftp.login(user, pw)
+        #ftp.login(user, pw)
     #on_modified doesn't get called unless we create a new file
     #useless because on_created gets called when creating new file anyway
     def on_modified(self, event):
@@ -56,7 +58,7 @@ class MyHandler(FileSystemEventHandler):
             last = directorylist[len(directorylist) - 1]
             if not last.startswith('.goutputstream'):
                 logging.warning(event.src_path + ' created')
-                print source[source.find("/OneDir/", 0, len(source))+8:] + ' director created'
+                print source[source.find("/OneDir/", 0, len(source))+8:] + ' directory created'
                 createDirectory(ftp, source[source.find("/OneDir/", 0, len(source))+8:])
         #creating a file
         else:
@@ -64,6 +66,10 @@ class MyHandler(FileSystemEventHandler):
             source_tilde = source[len(source)-1]
             directorylist = source.split('/')
             last = directorylist[len(directorylist) - 1]
+            if last.endswith('~'):
+                logging.warning(event.src_path + ' created')
+                print source[source.find("/OneDir/", 0, len(source))+8:len(source)-1] + ' file created'
+                upload (ftp, source[source.find("/OneDir/", 0, len(source))+8:len(source)-1])
             if not last.startswith('.goutputstream'):
                 if '___jb_' in last:
                     time.sleep(0.2)
@@ -111,7 +117,8 @@ class MyHandler(FileSystemEventHandler):
             deleteFile(ftp, source[source.find("/OneDir/", 0, len(source))+8:])
 
 def watchTheDog(directory):
-    event_handler = MyHandler(user, pw)
+    #event_handler = MyHandler(user, pw)
+    event_handler = MyHandler()
     logging.warning('watchdog started')
     observer = Observer()
     observer.schedule(event_handler, directory, recursive=True)
@@ -308,10 +315,6 @@ def upload(ftp, filePath):
 def run(ftp):
     # do a sample run, logging in to a local ftp server with my credentials
     # ftp = FTP('localhost')
-    global user
-    global pw
-    #user = 'ben'
-    #pw = 'edgar'
     #ftp.login('ben', 'edgar')
     watchDogThread = threading.Thread(target=watchTheDog, args=('OneDir',))
     watchDogThread_stop = threading.Event()
@@ -329,8 +332,6 @@ def run(ftp):
         if command == 'login':
             username = raw_input('Username: ')
             password = raw_input('Password: ')
-            user = username
-            pw = password
             try:
                 ftp.login(username, password)
                 syncOneDirServer(ftp, 'OneDir')
@@ -353,7 +354,8 @@ def run(ftp):
         # print "stopping the observer"
         watchDogThread_stop.set()
         ftp.quit()
-        ftp2 = FTP('localhost')
+        ftp2 = FTP()
+        ftp2.connect('localhost', 2121)
         resp = raw_input("\nDo you want to exit? (yes/no)")
         if resp.startswith('y') or resp.startswith('Y'):
             os._exit(0)
