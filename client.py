@@ -9,8 +9,8 @@ import threading
 from watchdog.events import LoggingEventHandler, FileSystemEventHandler, FileSystemEvent
 from watchdog.observers import Observer
 
-ftp = FTP('localhost')
-
+ftp = FTP()
+ftp.connect('localhost', 2121)
 class MyHandler(FileSystemEventHandler):
     def __init__(self):
         logging.basicConfig(filename='user.log', level=logging.INFO,
@@ -337,7 +337,8 @@ def run(ftp):
         # print "stopping the observer"
         watchDogThread_stop.set()
         ftp.quit()
-        ftp2 = FTP('localhost')
+        ftp2 = FTP()
+        ftp2.connect('localhost', 2121)
         resp = raw_input("\nDo you want to exit? (yes/no)")
         if resp.startswith('y') or resp.startswith('Y'):
             os._exit(0)
