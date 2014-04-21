@@ -12,10 +12,12 @@ from watchdog.observers import Observer
 ftp = FTP()
 ftp.connect('localhost', 2121)
 class MyHandler(FileSystemEventHandler):
-    def __init__(self):
+    # need to have ftp.login(username, password) in here too so that class knows what login credentials are
+    def __init__(self, user, pw):
         logging.basicConfig(filename='user.log', level=logging.INFO,
                             format='%(asctime)s - %(message)s',
                             datefmt='%Y-%m-%d %H:%M:%S')
+        ftp.login(user, pw)
     #on_modified doesn't get called unless we create a new file
     #useless because on_created gets called when creating new file anyway
     def on_modified(self, event):
@@ -109,7 +111,7 @@ class MyHandler(FileSystemEventHandler):
             deleteFile(ftp, source[source.find("/OneDir/", 0, len(source))+8:])
 
 def watchTheDog(directory):
-    event_handler = MyHandler()
+    event_handler = MyHandler(user, pw)
     logging.warning('watchdog started')
     observer = Observer()
     observer.schedule(event_handler, directory, recursive=True)
@@ -306,15 +308,29 @@ def upload(ftp, filePath):
 def run(ftp):
     # do a sample run, logging in to a local ftp server with my credentials
     # ftp = FTP('localhost')
-    # ftp.login('ben', 'edgar')
+    global user
+    global pw
+    #user = 'ben'
+    #pw = 'edgar'
+    #ftp.login('ben', 'edgar')
     watchDogThread = threading.Thread(target=watchTheDog, args=('OneDir',))
     watchDogThread_stop = threading.Event()
-
+    #watchDogThread.start()
+    #uploadAll(ftp, 'OneDir')
+    #deleteDir(ftp, 'OneDir') 
+    """try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        watchDogThread_stop.set()
+        os._exit(0)"""
     while True:
         command = raw_input('Enter a command (login, change password, create user): ')
         if command == 'login':
             username = raw_input('Username: ')
             password = raw_input('Password: ')
+            user = username
+            pw = password
             try:
                 ftp.login(username, password)
                 syncOneDirServer(ftp, 'OneDir')
