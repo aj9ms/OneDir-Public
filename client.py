@@ -11,7 +11,6 @@ from watchdog.observers import Observer
 
 ftp = FTP()
 ftp.connect('localhost', 2121)
-
 class MyHandler(FileSystemEventHandler):
     # need to have ftp.login(username, password) in here too so that class knows what login credentials are
     def __init__(self):
@@ -20,37 +19,12 @@ class MyHandler(FileSystemEventHandler):
                             format='%(asctime)s - %(message)s',
                             datefmt='%Y-%m-%d %H:%M:%S')
         #ftp.login(user, pw)
+    #NOTE (4/22): ON_MODIFIED gets called when we create new folders with files already 
+    #in it (ie, copying a directory).  Hence, we kept getting errors when copying folders.
+    #I commented the entire on_modified function because it's not necessary.
     #on_modified doesn't get called unless we create a new file
     #useless because on_created gets called when creating new file anyway
-    def on_modified(self, event):
-        if event.is_directory:
-            source = event.src_path
-            source_tilde = source[len(source)-1]
-            directorylist = source.split('/')
-            last = directorylist[len(directorylist) - 1]
-            if not last.startswith('.goutputstream'):
-                logging.warning(event.src_path + ' created')
-                print source[source.find("/OneDir/", 0, len(source))+8:] + ' director created'
-                createDirectory(ftp, source[source.find("/OneDir/", 0, len(source))+8:])
-        #creating a file
-        else:
-            source = event.src_path
-            source_tilde = source[len(source)-1]
-            directorylist = source.split('/')
-            last = directorylist[len(directorylist) - 1]
-            if not last.startswith('.goutputstream'):
-                if '___jb_' in last:
-                    time.sleep(0.2)
-                    source = source[:source.find('___jb')]
-                    print source
-                logging.warning(event.src_path + ' created')
-                print source[source.find("/OneDir/", 0, len(source))+8:] + ' file created'
-                upload(ftp, source[source.find("/OneDir/", 0, len(source))+8:])
-    #creates both files and directories
-    #for directories, the created directory will ALWAYS first be called "Untitled Folder"
-    #renaming folders comes in on_moved
-    def on_created(self, event):
-        #creating directory
+    """def on_modified(self, event):
         if event.is_directory:
             source = event.src_path
             source_tilde = source[len(source)-1]
@@ -66,7 +40,40 @@ class MyHandler(FileSystemEventHandler):
             source_tilde = source[len(source)-1]
             directorylist = source.split('/')
             last = directorylist[len(directorylist) - 1]
-            if last.endswith('~'):
+            if not last.startswith('.goutputstream'):
+                if '___jb_' in last:
+                    time.sleep(0.2)
+                    source = source[:source.find('___jb')]
+                    print source
+                logging.warning(event.src_path + ' created')
+                print source[source.find("/OneDir/", 0, len(source))+8:] + ' file created'
+                upload(ftp, source[source.find("/OneDir/", 0, len(source))+8:])"""
+    #creates both files and directories
+    #for directories, the created directory will ALWAYS first be called "Untitled Folder"
+    #renaming folders comes in on_moved
+    def on_created(self, event):
+        #creating directory
+        if event.is_directory:
+            source = event.src_path
+            source_tilde = source[len(source)-1]
+            directorylist = source.split('/')
+            last = directorylist[len(directorylist) - 1]
+            if not last.startswith('.goutputstream'):
+                if source_tilde == "~":
+                    logging.warning(source[0:len(source)-1] + ' created')
+                    print source[source.find("/OneDir/", 0, len(source))+8:len(source)-1] + ' created'
+                    createDirectory(ftp, source[source.find("/OneDir/", 0, len(source))+8:])
+                else:
+                    logging.warning(event.src_path + ' created')
+                    print source[source.find("/OneDir/", 0, len(source))+8:] + ' created'
+                    createDirectory(ftp, source[source.find("/OneDir/", 0, len(source))+8:])
+        #creating a file
+        else:
+            source = event.src_path
+            source_tilde = source[len(source)-1]
+            directorylist = source.split('/')
+            last = directorylist[len(directorylist) - 1]
+            if last.endswith('~') and not last.startswith('.goutputstream'):
                 logging.warning(event.src_path + ' created')
                 print source[source.find("/OneDir/", 0, len(source))+8:len(source)-1] + ' file created'
                 upload (ftp, source[source.find("/OneDir/", 0, len(source))+8:len(source)-1])
