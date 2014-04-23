@@ -118,7 +118,10 @@ class MyHandler(FileSystemEventHandler):
         else:
             deleteFile(ftp, source[source.find("/OneDir/", 0, len(source))+8:])
 
-def watchTheDog(directory):
+#Integrated into run() instead
+#Observer now stops when it's supposed to,
+#so auto-synchronization on/off actually works
+"""def watchTheDog(directory):
     #event_handler = MyHandler(user, pw)
     event_handler = MyHandler()
     logging.warning('watchdog started')
@@ -130,7 +133,7 @@ def watchTheDog(directory):
             time.sleep(1)
     except KeyboardInterrupt:
         observer.stop()
-    observer.join()
+    observer.join()"""
 
 # DEPRECATED, USE getFile instead
 # def getBinaryFile(ftp, filename, outfile=None):
@@ -318,17 +321,14 @@ def run(ftp):
     # do a sample run, logging in to a local ftp server with my credentials
     # ftp = FTP('localhost')
     #ftp.login('ben', 'edgar')
-    watchDogThread = threading.Thread(target=watchTheDog, args=('OneDir',))
-    watchDogThread_stop = threading.Event()
+    event_handler = MyHandler()
+    logging.warning('watchdog started')
+    observer = Observer()
+    observer.schedule(event_handler, 'OneDir', recursive=True)
+    #watchDogThread = threading.Thread(target=watchTheDog, args=('OneDir',))
     #watchDogThread.start()
     #uploadAll(ftp, 'OneDir')
     #deleteDir(ftp, 'OneDir') 
-    """try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        watchDogThread_stop.set()
-        os._exit(0)"""
     while True:
         command = raw_input('Enter a command (login, change password, create user, quit): ')
         if command == 'login':
@@ -342,9 +342,10 @@ def run(ftp):
                     if str(e) == '550 No such file or directory.':
                         ftp.mkd('OneDir')
                 time.sleep(1)
-                watchDogThread.start()
+                observer.start()
+                #watchDogThread.start()
                 break
-            except all_errors as e:
+            except all_errors:
                 print "Login failed, try again."
                 #print str(e)
         elif command == 'change password':
@@ -360,12 +361,16 @@ def run(ftp):
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
+        observer.stop()
         # print "stopping the observer"
-        watchDogThread_stop.set()
+        print "\nSynchronization is turned off."
+        print "Note: Answering the following means you are done editing files.  Even if you are not exiting, you will be logged out, and your current files will be automatically synced to the server."
+        resp = raw_input("\nDo you want to exit? (yes/no)")
+        syncOneDirClient(ftp, 'OneDir')
         ftp.quit()
         ftp2 = FTP()
         ftp2.connect('localhost', 2121)
-        resp = raw_input("\nDo you want to exit? (yes/no)")
+        observer.join()
         if resp.startswith('y') or resp.startswith('Y'):
             os._exit(0)
         else:
