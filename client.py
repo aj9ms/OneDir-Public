@@ -59,14 +59,9 @@ class MyHandler(FileSystemEventHandler):
             directorylist = source.split('/')
             last = directorylist[len(directorylist) - 1]
             if not last.startswith('.goutputstream'):
-                if source_tilde == "~":
-                    logging.warning(source[0:len(source)-1] + ' created')
-                    print source[source.find("/OneDir/", 0, len(source))+8:len(source)-1] + ' created'
-                    createDirectory(ftp, source[source.find("/OneDir/", 0, len(source))+8:])
-                else:
-                    logging.warning(event.src_path + ' created')
-                    print source[source.find("/OneDir/", 0, len(source))+8:] + ' created'
-                    createDirectory(ftp, source[source.find("/OneDir/", 0, len(source))+8:])
+                logging.warning(event.src_path + ' created')
+                print source[source.find("/OneDir/", 0, len(source))+8:] + ' created'
+                createDirectory(ftp, source[source.find("/OneDir/", 0, len(source))+8:])
         #creating a file
         else:
             source = event.src_path
@@ -335,24 +330,31 @@ def run(ftp):
         watchDogThread_stop.set()
         os._exit(0)"""
     while True:
-        command = raw_input('Enter a command (login, change password, create user): ')
+        command = raw_input('Enter a command (login, change password, create user, quit): ')
         if command == 'login':
             username = raw_input('Username: ')
             password = raw_input('Password: ')
             try:
                 ftp.login(username, password)
-                syncOneDirServer(ftp, 'OneDir')
+                try:
+                    syncOneDirServer(ftp, 'OneDir')
+                except all_errors as e:
+                    if str(e) == '550 No such file or directory.':
+                        ftp.mkd('OneDir')
                 time.sleep(1)
                 watchDogThread.start()
                 break
-            except all_errors:
+            except all_errors as e:
                 print "Login failed, try again."
+                #print str(e)
         elif command == 'change password':
             # do something to change the password
             pass
         elif command == 'create user':
             # append to the pass.dat file probably
             pass
+        elif command == 'quit':
+            os._exit(0)
     try:
         print "If you want to pause syncing type ctrl-C"
         while True:
