@@ -341,6 +341,7 @@ def run(ftp):
                 except all_errors as e:
                     if str(e) == '550 No such file or directory.':
                         ftp.mkd('OneDir')
+                        syncOneDirServer(ftp, 'OneDir')
                 time.sleep(1)
                 observer.start()
                 #watchDogThread.start()
