@@ -349,9 +349,9 @@ def run(ftp):
                 observer.start()
                 #watchDogThread.start()
                 break
-            except all_errors:
-                print "Login failed, try again."
-                #print str(e)
+            except all_errors as e:
+                print "FTP error: " + str(e)
+                # print "Login failed, try again."
         elif command == 'change password':
             # do something to change the password
             pass
