@@ -234,6 +234,7 @@ def syncOneDirClient(ftp, folder):
             if fil in filelist:
                 ftp.voidcmd('TYPE I')
                 if os.path.getsize(fil) != ftp.size(fil):
+                    # deleteFile(ftp, fil)
                     upload(ftp, fil)
             else:
                 getFile(ftp, fil, os.path.join(curr_cli, os.path.join(folder, fil)))
