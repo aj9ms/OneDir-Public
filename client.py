@@ -17,7 +17,6 @@ class MyHandler(FileSystemEventHandler):
         logging.basicConfig(filename='user.log', level=logging.INFO,
                             format='%(asctime)s - %(message)s',
                             datefmt='%Y-%m-%d %H:%M:%S')
-        ftp.login(user, pw)
     #on_modified doesn't get called unless we create a new file
     #useless because on_created gets called when creating new file anyway
     def on_modified(self, event):
@@ -337,8 +336,9 @@ def run(ftp):
                 time.sleep(1)
                 watchDogThread.start()
                 break
-            except all_errors:
-                print "Login failed, try again."
+            except all_errors as e:
+                print "FTP error: " + str(e)
+                # print "Login failed, try again."
         elif command == 'change password':
             # do something to change the password
             pass
