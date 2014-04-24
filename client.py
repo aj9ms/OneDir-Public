@@ -13,12 +13,11 @@ ftp = FTP()
 ftp.connect('localhost', 2121)
 class MyHandler(FileSystemEventHandler):
     # need to have ftp.login(username, password) in here too so that class knows what login credentials are
-    def __init__(self):
-    #def __init(self, user, pw):
+    def __init__(self, ftp):
+        self.ftp = ftp
         logging.basicConfig(filename='user.log', level=logging.INFO,
                             format='%(asctime)s - %(message)s',
                             datefmt='%Y-%m-%d %H:%M:%S')
-        #ftp.login(user, pw)
     #NOTE (4/22): ON_MODIFIED gets called when we create new folders with files already 
     #in it (ie, copying a directory).  Hence, we kept getting errors when copying folders.
     #I commented the entire on_modified function because it's not necessary.
@@ -61,7 +60,7 @@ class MyHandler(FileSystemEventHandler):
             if not last.startswith('.goutputstream'):
                 logging.warning(event.src_path + ' created')
                 print source[source.find("/OneDir/", 0, len(source))+8:] + ' created'
-                createDirectory(ftp, source[source.find("/OneDir/", 0, len(source))+8:])
+                createDirectory(self.ftp, source[source.find("/OneDir/", 0, len(source))+8:])
         #creating a file
         else:
             source = event.src_path
@@ -71,7 +70,7 @@ class MyHandler(FileSystemEventHandler):
             if last.endswith('~') and not last.startswith('.goutputstream'):
                 logging.warning(event.src_path + ' created')
                 print source[source.find("/OneDir/", 0, len(source))+8:len(source)-1] + ' file created'
-                upload (ftp, source[source.find("/OneDir/", 0, len(source))+8:len(source)-1])
+                upload (self.ftp, source[source.find("/OneDir/", 0, len(source))+8:len(source)-1])
             if not last.startswith('.goutputstream'):
                 if '___jb_' in last:
                     time.sleep(0.2)
@@ -79,7 +78,7 @@ class MyHandler(FileSystemEventHandler):
                     print source
                 logging.warning(event.src_path + ' created')
                 print source[source.find("/OneDir/", 0, len(source))+8:] + ' file created'
-                upload(ftp, source[source.find("/OneDir/", 0, len(source))+8:])
+                upload(self.ftp, source[source.find("/OneDir/", 0, len(source))+8:])
     #moving files
     #renaming a directory
     #moving a directory
@@ -95,7 +94,7 @@ class MyHandler(FileSystemEventHandler):
                 #not a temp file but is still a file
                 logging.warning(event.src_path + ' movedto ' + event.dest_path)
                 print source[source.find("/OneDir/", 0, len(source))+8:] + ' movedto ' + dest[dest.find("/OneDir/", 0, len(dest))+8:]
-                rename(ftp, source[source.find("/OneDir/", 0, len(source))+8:], dest[dest.find("/OneDir/", 0, len(dest))+8:])
+                rename(self.ftp, source[source.find("/OneDir/", 0, len(source))+8:], dest[dest.find("/OneDir/", 0, len(dest))+8:])
             #event is a directory (directory moving AND renaming)
             # elif event.is_directory:
             #         print source[source.find("/OneDir/", 0, len(source))+8:] + ' movedto ' + dest[dest.find("/OneDir/", 0, len(dest))+8:]
@@ -114,9 +113,9 @@ class MyHandler(FileSystemEventHandler):
         logging.warning(event.src_path + ' deleted')
         print source[source.find("/OneDir/", 0, len(source))+8:] + ' deleted'
         if event.is_directory:
-            deleteDir(ftp, source[source.find("/OneDir/", 0, len(source))+8:])
+            deleteDir(self.ftp, source[source.find("/OneDir/", 0, len(source))+8:])
         else:
-            deleteFile(ftp, source[source.find("/OneDir/", 0, len(source))+8:])
+            deleteFile(self.ftp, source[source.find("/OneDir/", 0, len(source))+8:])
 
 #Integrated into run() instead
 #Observer now stops when it's supposed to,
@@ -321,10 +320,10 @@ def run(ftp):
     # do a sample run, logging in to a local ftp server with my credentials
     # ftp = FTP('localhost')
     #ftp.login('ben', 'edgar')
-    event_handler = MyHandler()
-    logging.warning('watchdog started')
-    observer = Observer()
-    observer.schedule(event_handler, 'OneDir', recursive=True)
+    #event_handler = MyHandler()
+    #logging.warning('watchdog started')
+    #observer = Observer()
+    #observer.schedule(event_handler, 'OneDir', recursive=True)
     #watchDogThread = threading.Thread(target=watchTheDog, args=('OneDir',))
     #watchDogThread.start()
     #uploadAll(ftp, 'OneDir')
@@ -336,11 +335,16 @@ def run(ftp):
             password = raw_input('Password: ')
             try:
                 ftp.login(username, password)
+                event_handler = MyHandler(ftp)
+                logging.warning('watchdog started')
+                observer = Observer()
+                observer.schedule(event_handler, 'OneDir', recursive=True)
                 try:
                     syncOneDirServer(ftp, 'OneDir')
                 except all_errors as e:
                     if str(e) == '550 No such file or directory.':
                         ftp.mkd('OneDir')
+                        syncOneDirServer(ftp, 'OneDir')
                 time.sleep(1)
                 observer.start()
                 #watchDogThread.start()
@@ -362,6 +366,7 @@ def run(ftp):
             time.sleep(1)
     except KeyboardInterrupt:
         observer.stop()
+        observer.join()
         # print "stopping the observer"
         print "\nSynchronization is turned off."
         print "Note: Answering the following means you are done editing files.  Even if you are not exiting, you will be logged out, and your current files will be automatically synced to the server."
@@ -370,7 +375,6 @@ def run(ftp):
         ftp.quit()
         ftp2 = FTP()
         ftp2.connect('localhost', 2121)
-        observer.join()
         if resp.startswith('y') or resp.startswith('Y'):
             os._exit(0)
         else:
