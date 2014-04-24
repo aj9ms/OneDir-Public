@@ -13,13 +13,15 @@ ftp = FTP()
 ftp.connect('localhost', 2121)
 class MyHandler(FileSystemEventHandler):
     # need to have ftp.login(username, password) in here too so that class knows what login credentials are
-    def __init__(self, user, pw):
+    def __init__(self):
+    #def __init(self, user, pw):
         logging.basicConfig(filename='user.log', level=logging.INFO,
                             format='%(asctime)s - %(message)s',
                             datefmt='%Y-%m-%d %H:%M:%S')
+
     #on_modified doesn't get called unless we create a new file
     #useless because on_created gets called when creating new file anyway
-    def on_modified(self, event):
+    """def on_modified(self, event):
         if event.is_directory:
             source = event.src_path
             source_tilde = source[len(source)-1]
@@ -27,7 +29,7 @@ class MyHandler(FileSystemEventHandler):
             last = directorylist[len(directorylist) - 1]
             if not last.startswith('.goutputstream'):
                 logging.warning(event.src_path + ' created')
-                print source[source.find("/OneDir/", 0, len(source))+8:] + ' director created'
+                print source[source.find("/OneDir/", 0, len(source))+8:] + ' directory created'
                 createDirectory(ftp, source[source.find("/OneDir/", 0, len(source))+8:])
         #creating a file
         else:
@@ -42,7 +44,7 @@ class MyHandler(FileSystemEventHandler):
                     print source
                 logging.warning(event.src_path + ' created')
                 print source[source.find("/OneDir/", 0, len(source))+8:] + ' file created'
-                upload(ftp, source[source.find("/OneDir/", 0, len(source))+8:])
+                upload(ftp, source[source.find("/OneDir/", 0, len(source))+8:])"""
     #creates both files and directories
     #for directories, the created directory will ALWAYS first be called "Untitled Folder"
     #renaming folders comes in on_moved
@@ -55,7 +57,7 @@ class MyHandler(FileSystemEventHandler):
             last = directorylist[len(directorylist) - 1]
             if not last.startswith('.goutputstream'):
                 logging.warning(event.src_path + ' created')
-                print source[source.find("/OneDir/", 0, len(source))+8:] + ' director created'
+                print source[source.find("/OneDir/", 0, len(source))+8:] + ' created'
                 createDirectory(ftp, source[source.find("/OneDir/", 0, len(source))+8:])
         #creating a file
         else:
@@ -63,6 +65,10 @@ class MyHandler(FileSystemEventHandler):
             source_tilde = source[len(source)-1]
             directorylist = source.split('/')
             last = directorylist[len(directorylist) - 1]
+            if last.endswith('~') and not last.startswith('.goutputstream'):
+                logging.warning(event.src_path + ' created')
+                print source[source.find("/OneDir/", 0, len(source))+8:len(source)-1] + ' file created'
+                upload (ftp, source[source.find("/OneDir/", 0, len(source))+8:len(source)-1])
             if not last.startswith('.goutputstream'):
                 if '___jb_' in last:
                     time.sleep(0.2)
@@ -109,8 +115,12 @@ class MyHandler(FileSystemEventHandler):
         else:
             deleteFile(ftp, source[source.find("/OneDir/", 0, len(source))+8:])
 
-def watchTheDog(directory):
-    event_handler = MyHandler(user, pw)
+#Integrated into run() instead
+#Observer now stops when it's supposed to,
+#so auto-synchronization on/off actually works
+"""def watchTheDog(directory):
+    #event_handler = MyHandler(user, pw)
+    event_handler = MyHandler()
     logging.warning('watchdog started')
     observer = Observer()
     observer.schedule(event_handler, directory, recursive=True)
@@ -120,7 +130,7 @@ def watchTheDog(directory):
             time.sleep(1)
     except KeyboardInterrupt:
         observer.stop()
-    observer.join()
+    observer.join()"""
 
 # DEPRECATED, USE getFile instead
 # def getBinaryFile(ftp, filename, outfile=None):
@@ -307,34 +317,31 @@ def upload(ftp, filePath):
 def run(ftp):
     # do a sample run, logging in to a local ftp server with my credentials
     # ftp = FTP('localhost')
-    global user
-    global pw
-    #user = 'ben'
-    #pw = 'edgar'
     #ftp.login('ben', 'edgar')
-    watchDogThread = threading.Thread(target=watchTheDog, args=('OneDir',))
-    watchDogThread_stop = threading.Event()
+    event_handler = MyHandler()
+    logging.warning('watchdog started')
+    observer = Observer()
+    observer.schedule(event_handler, 'OneDir', recursive=True)
+    #watchDogThread = threading.Thread(target=watchTheDog, args=('OneDir',))
     #watchDogThread.start()
     #uploadAll(ftp, 'OneDir')
     #deleteDir(ftp, 'OneDir') 
-    """try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        watchDogThread_stop.set()
-        os._exit(0)"""
     while True:
-        command = raw_input('Enter a command (login, change password, create user): ')
+        command = raw_input('Enter a command (login, change password, create user, quit): ')
         if command == 'login':
             username = raw_input('Username: ')
             password = raw_input('Password: ')
-            user = username
-            pw = password
             try:
                 ftp.login(username, password)
-                syncOneDirServer(ftp, 'OneDir')
+                try:
+                    syncOneDirServer(ftp, 'OneDir')
+                except all_errors as e:
+                    if str(e) == '550 No such file or directory.':
+                        ftp.mkd('OneDir')
+                        syncOneDirServer(ftp, 'OneDir')
                 time.sleep(1)
-                watchDogThread.start()
+                observer.start()
+                #watchDogThread.start()
                 break
             except all_errors as e:
                 print "FTP error: " + str(e)
@@ -345,17 +352,23 @@ def run(ftp):
         elif command == 'create user':
             # append to the pass.dat file probably
             pass
+        elif command == 'quit':
+            os._exit(0)
     try:
         print "If you want to pause syncing type ctrl-C"
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
+        observer.stop()
         # print "stopping the observer"
-        watchDogThread_stop.set()
+        print "\nSynchronization is turned off."
+        print "Note: Answering the following means you are done editing files.  Even if you are not exiting, you will be logged out, and your current files will be automatically synced to the server."
+        resp = raw_input("\nDo you want to exit? (yes/no)")
+        syncOneDirClient(ftp, 'OneDir')
         ftp.quit()
         ftp2 = FTP()
         ftp2.connect('localhost', 2121)
-        resp = raw_input("\nDo you want to exit? (yes/no)")
+        observer.join()
         if resp.startswith('y') or resp.startswith('Y'):
             os._exit(0)
         else:
