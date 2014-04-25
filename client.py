@@ -161,10 +161,10 @@ def getFile(ftp, filePath, outfile=None):
     else:
         outfile = open(outfile, 'w')
     extension = os.path.splitext(filePath)[1]
-    if extension in ('.txt', '.htm', '.html'):
-        ftp.retrlines('RETR ' + filePath, lambda s, w = outfile.write: w(s))
-    else:
-        ftp.retrbinary('RETR ' + filePath, outfile.write)
+    # if extension in ('.txt', '.htm', '.html'):
+    #     ftp.retrlines('RETR ' + filePath, lambda s, w = outfile.write: w(s) + '\n')
+    # else:
+    ftp.retrbinary('RETR ' + filePath, outfile.write)
 
 def deleteFile(ftp, filePath):
     # delete a file on the server
@@ -335,7 +335,7 @@ def run(ftp):
     #uploadAll(ftp, 'OneDir')
     #deleteDir(ftp, 'OneDir') 
     while True:
-        command = raw_input('Enter a command (login, change password, create user, quit): ')
+        command = raw_input('\nEnter a command (login, change password, create user, admin, quit): ')
         if command == 'login':
             username = raw_input('Username: ')
             password = raw_input('Password: ')
@@ -360,10 +360,35 @@ def run(ftp):
                 # print "Login failed, try again."
         elif command == 'change password':
             # do something to change the password
-            pass
+            ftp.login('root', 'password')
+            try:
+                ftp.sendcmd('STAT ' + 'changepassword:ben:david')
+            except:
+                pass
         elif command == 'create user':
             # append to the pass.dat file probably
-            pass
+            ftp.login('root', 'password')
+            try:
+                ftp.sendcmd('STAT ' + "createuser:ben2:password")
+                print ftp.getresp()
+            except all_errors:
+                pass
+        elif command == 'admin':
+            username = raw_input('\nPlease login as an admin\nUsername: ')
+            password = raw_input('Password ')
+            if username=='root' and password=='password':
+                ftp.login('root', 'password')
+                while True:
+                    command = raw_input('Enter a valid admin command (remove user, change password, get info): ')
+                    if command == 'get info':
+                        try:
+                            ftp.sendcmd('STAT ' + "userinfo")
+                        except all_errors:
+                            pass
+                        getFile(ftp, 'root/userinfo.txt', 'userinfo.txt')
+                        with open('userinfo.txt', 'r') as f:
+                            for line in f:
+                                print line ,
         elif command == 'quit':
             os._exit(0)
     try:
