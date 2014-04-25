@@ -1,4 +1,5 @@
 import os
+import socket
 from shutil import rmtree
 from pyftpdlib.authorizers import DummyAuthorizer
 from pyftpdlib.handlers import FTPHandler
@@ -131,7 +132,11 @@ def main():
     #handler.passive_ports = range(60000, 65535)
 
     # Instantiate FTP server class and listen on 0.0.0.0:2121
-    address = ('localhost', 2121)
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(("gmail.com",80))
+    ip = str(s.getsockname()[0])
+    s.close()
+    address = (ip, 2121)
     server = FTPServer(address, handler)
 
     # set a limit for connections
