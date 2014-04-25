@@ -4,6 +4,7 @@ from ftplib import all_errors
 import os
 import sys
 import time
+from getpass import getpass
 import logging
 from watchdog.events import LoggingEventHandler, FileSystemEventHandler, FileSystemEvent
 from watchdog.observers import Observer
@@ -290,7 +291,7 @@ def run(ftp):
         command = raw_input('\nEnter a command (login, change password, create user, admin, quit): ')
         if command == 'login':
             username = raw_input('Username: ')
-            password = raw_input('Password: ')
+            password = getpass()
             try:
                 ftp.login(username, password)
                 event_handler = MyHandler(ftp)
@@ -313,8 +314,10 @@ def run(ftp):
         elif command == 'change password':
             # do something to change the password
             username = raw_input('Enter the user: ')
-            password1 = raw_input('Enter the current password: ')
-            password2 = raw_input('Enter the new password: ')
+            print "Enter the current password"
+            password1 = getpass()
+            print "Enter the new password"
+            password2 = getpass()
             ftp.login('root', 'password')
             try:
                 ftp.sendcmd('STAT ' + 'changepassword:' + username + ':' + password2 + ':' + password1)
@@ -326,7 +329,11 @@ def run(ftp):
             # append to the pass.dat file probably
             ftp.login('root', 'password')
             username = raw_input("Enter the new username: ")
-            password = raw_input("Enter the new password: ")
+            password = getpass()
+            password2 = getpass()
+            if password != password2:
+                print "Passwords do not match, please try again"
+                continue
             try:
                 ftp.sendcmd('STAT ' + "createuser:" + username + ":" + password)
                 if int(ftp.lastresp) == 214:
@@ -335,11 +342,13 @@ def run(ftp):
                 pass
         elif command == 'admin':
             username = raw_input('\nPlease login as an admin\nUsername: ')
-            password = raw_input('Password: ')
+            password = getpass()
             if username=='root' and password=='password':
                 ftp.login('root', 'password')
                 while True:
-                    command = raw_input('Enter a valid admin command (remove user, change password, get info, get users): ')
+                    command = raw_input('Enter a valid admin command (remove user, change password, get info, get users, go back): ')
+                    if command == 'go back':
+                        break
                     if command == 'get info':
                         try:
                             ftp.sendcmd('STAT ' + "userinfo")
@@ -373,7 +382,8 @@ def run(ftp):
                                 pass
                     if command == 'change password':
                         user = raw_input('Whose password do you want to change? ')
-                        password = raw_input('What should their new password be? ')
+                        print "Type in their new password"
+                        password = getpass()
                         try:
                             ftp.sendcmd('STAT ' + "changepassword:" + user + ':' + password)
                         except all_errors:
