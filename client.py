@@ -5,47 +5,16 @@ import os
 import sys
 import time
 import logging
-import threading
 from watchdog.events import LoggingEventHandler, FileSystemEventHandler, FileSystemEvent
 from watchdog.observers import Observer
 
 ftp = FTP()
-ftp.connect('localhost', 2121)
 class MyHandler(FileSystemEventHandler):
     # need to have ftp.login(username, password) in here too so that class knows what login credentials are
     def __init__(self, ftp):
         logging.basicConfig(filename='OneDir/.user.log', level=logging.INFO,
                             format='%(asctime)s - %(message)s',datefmt='%Y-%m-%d %H:%M:%S')
         self.ftp = ftp
-    #NOTE (4/22): ON_MODIFIED gets called when we create new folders with files already 
-    #in it (ie, copying a directory).  Hence, we kept getting errors when copying folders.
-    #I commented the entire on_modified function because it's not necessary.
-    #on_modified doesn't get called unless we create a new file
-    #useless because on_created gets called when creating new file anyway
-    """def on_modified(self, event):
-        if event.is_directory:
-            source = event.src_path
-            source_tilde = source[len(source)-1]
-            directorylist = source.split('/')
-            last = directorylist[len(directorylist) - 1]
-            if not last.startswith('.goutputstream'):
-                logging.warning(event.src_path + ' created')
-                print source[source.find("/OneDir/", 0, len(source))+8:] + ' directory created'
-                createDirectory(ftp, source[source.find("/OneDir/", 0, len(source))+8:])
-        #creating a file
-        else:
-            source = event.src_path
-            source_tilde = source[len(source)-1]
-            directorylist = source.split('/')
-            last = directorylist[len(directorylist) - 1]
-            if not last.startswith('.goutputstream'):
-                if '___jb_' in last:
-                    time.sleep(0.2)
-                    source = source[:source.find('___jb')]
-                    print source
-                logging.warning(event.src_path + ' created')
-                print source[source.find("/OneDir/", 0, len(source))+8:] + ' file created'
-                upload(ftp, source[source.find("/OneDir/", 0, len(source))+8:])"""
     #creates both files and directories
     #for directories, the created directory will ALWAYS first be called "Untitled Folder"
     #renaming folders comes in on_moved
@@ -121,23 +90,6 @@ class MyHandler(FileSystemEventHandler):
             deleteDir(self.ftp, source[source.find("/OneDir/", 0, len(source))+8:])
         else:
             deleteFile(self.ftp, source[source.find("/OneDir/", 0, len(source))+8:])
-
-#Integrated into run() instead
-#Observer now stops when it's supposed to,
-#so auto-synchronization on/off actually works
-"""def watchTheDog(directory):
-    #event_handler = MyHandler(user, pw)
-    event_handler = MyHandler()
-    logging.warning('watchdog started')
-    observer = Observer()
-    observer.schedule(event_handler, directory, recursive=True)
-    observer.start()
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        observer.stop()
-    observer.join()"""
 
 # DEPRECATED, USE getFile instead
 # def getBinaryFile(ftp, filename, outfile=None):
@@ -323,17 +275,17 @@ def upload(ftp, filePath):
             ftp.storbinary('STOR ' + filePath, open(filePath, 'rb'), 1024)
 
 def run(ftp):
-    # do a sample run, logging in to a local ftp server with my credentials
-    # ftp = FTP('localhost')
-    #ftp.login('ben', 'edgar')
-    #event_handler = MyHandler()
-    #logging.warning('watchdog started')
-    #observer = Observer()
-    #observer.schedule(event_handler, 'OneDir', recursive=True)
-    #watchDogThread = threading.Thread(target=watchTheDog, args=('OneDir',))
-    #watchDogThread.start()
-    #uploadAll(ftp, 'OneDir')
-    #deleteDir(ftp, 'OneDir') 
+    server = raw_input('What is the IP Address of the server? ')
+    try:
+        port = int(raw_input('What is the port number to connect to? '))
+    except ValueError:
+        print "The port must be an integer ... quitting"
+        os._exit(0)
+    try:
+        ftp.connect(server, port)
+    except all_errors:
+        print "Give a valid server and port number"
+        os._exit(0)
     while True:
         command = raw_input('\nEnter a command (login, change password, create user, admin, quit): ')
         if command == 'login':
@@ -441,7 +393,7 @@ def run(ftp):
         syncOneDirClient(ftp, 'OneDir')
         ftp.quit()
         ftp2 = FTP()
-        ftp2.connect('localhost', 2121)
+        ftp2.connect(server, port)
         observer.join()
         if resp.startswith('y') or resp.startswith('Y'):
             os._exit(0)
