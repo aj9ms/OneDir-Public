@@ -375,11 +375,11 @@ def run(ftp):
                 pass
         elif command == 'admin':
             username = raw_input('\nPlease login as an admin\nUsername: ')
-            password = raw_input('Password ')
+            password = raw_input('Password: ')
             if username=='root' and password=='password':
                 ftp.login('root', 'password')
                 while True:
-                    command = raw_input('Enter a valid admin command (remove user, change password, get info): ')
+                    command = raw_input('Enter a valid admin command (remove user, change password, get info, get users): ')
                     if command == 'get info':
                         try:
                             ftp.sendcmd('STAT ' + "userinfo")
@@ -388,7 +388,36 @@ def run(ftp):
                         getFile(ftp, 'root/userinfo.txt', 'userinfo.txt')
                         with open('userinfo.txt', 'r') as f:
                             for line in f:
-                                print line ,
+                                print line,
+                    if command == 'get users':
+                        try:
+                            ftp.sendcmd('STAT ' + "users")
+                        except all_errors:
+                            pass
+                        getFile(ftp, 'root/users.txt', 'users.txt')
+                        with open('users.txt', 'r') as f:
+                            for line in f:
+                                print line,
+                    if command == 'remove user':
+                        user = raw_input('Which user do you want to remove? ')
+                        cond = raw_input('Do you want to delete their files? ')
+                        if cond.startswith('Y') or cond.startswith('y'):
+                            try:
+                                ftp.sendcmd('STAT ' + "removeuser:" + user + ':True')
+                            except all_errors:
+                                pass
+                        else:
+                            try:
+                                ftp.sendcmd('STAT ' + "removeuser:" + user + ':False')
+                            except all_errors:
+                                pass
+                    if command == 'change password':
+                        user = raw_input('Whose password do you want to change? ')
+                        password = raw_input('What should their new password be? ')
+                        try:
+                            ftp.sendcmd('STAT ' + "changepassword:" + user + ':' + password)
+                        except all_errors:
+                            pass
         elif command == 'quit':
             os._exit(0)
     try:

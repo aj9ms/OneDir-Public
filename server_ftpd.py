@@ -1,41 +1,5 @@
-#!/usr/bin/env python
-# $Id$
-
-#  pyftpdlib is released under the MIT license, reproduced below:
-#  ======================================================================
-#  Copyright (C) 2007-2014 Giampaolo Rodola' <g.rodola@gmail.com>
-#
-#                         All Rights Reserved
-#
-# Permission is hereby granted, free of charge, to any person
-# obtaining a copy of this software and associated documentation
-# files (the "Software"), to deal in the Software without
-# restriction, including without limitation the rights to use,
-# copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the
-# Software is furnished to do so, subject to the following
-# conditions:
-#
-# The above copyright notice and this permission notice shall be
-# included in all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
-# OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-# WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-# OTHER DEALINGS IN THE SOFTWARE.
-#
-#  ======================================================================
-
-"""A basic FTP server which uses a DummyAuthorizer for managing 'virtual
-users', setting a limit for incoming connections.
-"""
-
 import os
-
+from shutil import rmtree
 from pyftpdlib.authorizers import DummyAuthorizer
 from pyftpdlib.handlers import FTPHandler
 from pyftpdlib.servers import FTPServer, ThreadedFTPServer, MultiprocessFTPServer
@@ -82,11 +46,14 @@ class Handler(FTPHandler):
                     else:
                         f.write(line + '\n')
             self.authorizer.remove_user(a[1])
-            if bool(a[2]):
-                os.rmdir(a[1])
+            if a[2] == 'True':
+                rmtree(a[1])
         elif a[0].startswith('userinfo'):
             with open('root/userinfo.txt', 'w') as f:
+                totSize = 0
                 for user in self.authorizer.user_table.keys():
+                    if user == 'root':
+                        continue
                     size = 0
                     numFiles = 0
                     numDirs = -1
@@ -100,7 +67,16 @@ class Handler(FTPHandler):
                     if numDirs == -1: numDirs = 0
                     f.write('Number of Directories: ' + str(numDirs) + '\n')
                     f.write('Number of Files: ' + str(numFiles) + '\n')
-                    f.write('Total File Size: ' + str(size) + '\n')
+                    f.write('Total File Size (bytes): ' + str(size) + '\n')
+                    totSize = totSize + size
+                f.write('Total Storage Used (bytes): ' + str(totSize) + '\n')
+        elif a[0].startswith('users'):
+            with open('root/users.txt', 'w') as f:
+                f.write('Users: \n')
+                for user in self.authorizer.user_table.keys():
+                    if user == 'root':
+                        continue
+                    f.write(user + '\n')
         self.respond('213 Done')
         return
 
@@ -112,6 +88,8 @@ def main():
     # anonymous user
     for line in open('pass.dat'):
         info = line.split(':')
+        if len(info) < 2:
+            continue
         try:
             os.mkdir(os.path.join(os.getcwd(), info[0]))
         except:
