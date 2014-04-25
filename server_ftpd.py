@@ -11,6 +11,11 @@ class Handler(FTPHandler):
         for i in range(len(a)):
             a[i] = a[i].strip()
         if a[0].startswith('createuser'):
+            with open('pass.dat', 'r') as f:
+                for line in f:
+                    if a[1] in line:
+                        self.respond('214 user already exists')
+                        return
             with open('pass.dat', 'a') as f:
                 f.write(a[1] + ":" + a[2] + '\n')
             try:
@@ -20,9 +25,17 @@ class Handler(FTPHandler):
             self.authorizer.add_user(a[1], a[2], os.path.join(os.getcwd(), a[1]), perm='elradfmwM')
         elif a[0].startswith('changepassword'):
             temp = ""
+            b = False
+            if len(a) == 3:
+                a.append(":")
             with open('pass.dat', 'r') as f:
                 for line in f:
+                    if a[1] in line and a[3] in line:
+                        b = True
                     temp = temp + line
+            if not b:
+                self.respond('215 user does not exist')
+                return
             with open('pass.dat', 'w') as f:
                 temp2 = temp.split('\n')
                 for line in temp2:

@@ -360,17 +360,25 @@ def run(ftp):
                 # print "Login failed, try again."
         elif command == 'change password':
             # do something to change the password
+            username = raw_input('Enter the user: ')
+            password1 = raw_input('Enter the current password: ')
+            password2 = raw_input('Enter the new password: ')
             ftp.login('root', 'password')
             try:
-                ftp.sendcmd('STAT ' + 'changepassword:ben:david')
+                ftp.sendcmd('STAT ' + 'changepassword:' + username + ':' + password2 + ':' + password1)
+                if int(ftp.lastresp) == 215:
+                    print "User does not exist"
             except:
                 pass
         elif command == 'create user':
             # append to the pass.dat file probably
             ftp.login('root', 'password')
+            username = raw_input("Enter the new username: ")
+            password = raw_input("Enter the new password: ")
             try:
-                ftp.sendcmd('STAT ' + "createuser:ben2:password")
-                print ftp.getresp()
+                ftp.sendcmd('STAT ' + "createuser:" + username + ":" + password)
+                if int(ftp.lastresp) == 214:
+                    print "User Already Exists, try again"
             except all_errors:
                 pass
         elif command == 'admin':
