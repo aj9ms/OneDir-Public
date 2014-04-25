@@ -14,10 +14,9 @@ ftp.connect('localhost', 2121)
 class MyHandler(FileSystemEventHandler):
     # need to have ftp.login(username, password) in here too so that class knows what login credentials are
     def __init__(self, ftp):
+        logging.basicConfig(filename='OneDir/.user.log', level=logging.INFO,
+                            format='%(asctime)s - %(message)s',datefmt='%Y-%m-%d %H:%M:%S')
         self.ftp = ftp
-        logging.basicConfig(filename='user.log', level=logging.INFO,
-                            format='%(asctime)s - %(message)s',
-                            datefmt='%Y-%m-%d %H:%M:%S')
     #NOTE (4/22): ON_MODIFIED gets called when we create new folders with files already 
     #in it (ie, copying a directory).  Hence, we kept getting errors when copying folders.
     #I commented the entire on_modified function because it's not necessary.
@@ -85,16 +84,22 @@ class MyHandler(FileSystemEventHandler):
     def on_moved(self, event):
         try:
             source = event.src_path
-            directorylist = source.split('/')
-            last = directorylist[len(directorylist) - 1]
-            dest = event.dest_path
-            destlist = dest.split('/')
+            if source is None:
+                d = event.dest_path
+                logging.warning(event.dest_path + ' created')
+                print d[d.find("/OneDir/", 0, len(d))+8:] + ' file created'
+                upload(self.ftp, d[d.find("/OneDir/", 0, len(d))+8:])
+            else:
+                directorylist = source.split('/')
+                last = directorylist[len(directorylist) - 1]
+                dest = event.dest_path
+                destlist = dest.split('/')
             #not a temp file but is still a file (file moving)
-            if not last.startswith('.goutputstream') and '___jb_' not in last and '___jb_' not in dest:
+                if not last.startswith('.goutputstream') and '___jb_' not in last and '___jb_' not in dest:
                 #not a temp file but is still a file
-                logging.warning(event.src_path + ' movedto ' + event.dest_path)
-                print source[source.find("/OneDir/", 0, len(source))+8:] + ' movedto ' + dest[dest.find("/OneDir/", 0, len(dest))+8:]
-                rename(self.ftp, source[source.find("/OneDir/", 0, len(source))+8:], dest[dest.find("/OneDir/", 0, len(dest))+8:])
+                    logging.warning(event.src_path + ' movedto ' + event.dest_path)
+                    print source[source.find("/OneDir/", 0, len(source))+8:] + ' movedto ' + dest[dest.find("/OneDir/", 0, len(dest))+8:]
+                    rename(self.ftp, source[source.find("/OneDir/", 0, len(source))+8:], dest[dest.find("/OneDir/", 0, len(dest))+8:])
             #event is a directory (directory moving AND renaming)
             # elif event.is_directory:
             #         print source[source.find("/OneDir/", 0, len(source))+8:] + ' movedto ' + dest[dest.find("/OneDir/", 0, len(dest))+8:]
@@ -367,7 +372,6 @@ def run(ftp):
             time.sleep(1)
     except KeyboardInterrupt:
         observer.stop()
-        observer.join()
         # print "stopping the observer"
         print "\nSynchronization is turned off."
         print "Note: Answering the following means you are done editing files.  Even if you are not exiting, you will be logged out, and your current files will be automatically synced to the server."
@@ -376,6 +380,7 @@ def run(ftp):
         ftp.quit()
         ftp2 = FTP()
         ftp2.connect('localhost', 2121)
+        observer.join()
         if resp.startswith('y') or resp.startswith('Y'):
             os._exit(0)
         else:
