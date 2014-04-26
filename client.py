@@ -11,7 +11,6 @@ from watchdog.observers import Observer
 
 ftp = FTP()
 class MyHandler(FileSystemEventHandler):
-    # need to have ftp.login(username, password) in here too so that class knows what login credentials are
     def __init__(self, ftp):
         logging.basicConfig(filename='OneDir/.user.log', level=logging.INFO,
                             format='%(asctime)s - %(message)s',datefmt='%Y-%m-%d %H:%M:%S')
@@ -70,21 +69,12 @@ class MyHandler(FileSystemEventHandler):
                     logging.warning(event.src_path + ' movedto ' + event.dest_path)
                     print source[source.find("/OneDir/", 0, len(source))+8:] + ' movedto ' + dest[dest.find("/OneDir/", 0, len(dest))+8:]
                     rename(self.ftp, source[source.find("/OneDir/", 0, len(source))+8:], dest[dest.find("/OneDir/", 0, len(dest))+8:])
-            #event is a directory (directory moving AND renaming)
-            # elif event.is_directory:
-            #         print source[source.find("/OneDir/", 0, len(source))+8:] + ' movedto ' + dest[dest.find("/OneDir/", 0, len(dest))+8:]
-            #         logging.warning(event.src_path + ' movedto ' + event.dest_path)
         except all_errors:
             pass
     #deleting files and folders (when deleting a folder, it lists all files to delete as well)
     def on_deleted(self, event):
         source = event.src_path
         source_tilde = source[len(source)-1]
-        # if source_tilde == "~":
-        #     logging.warning(source[0:len(source)-1] + ' deleted')
-        #     print source[source.find("/OneDir/", 0, len(source))+8:len(source)-1] + ' deleted'
-        #
-        # else:
         logging.warning(event.src_path + ' deleted')
         print source[source.find("/OneDir/", 0, len(source))+8:] + ' deleted'
         if event.is_directory:
@@ -291,7 +281,7 @@ def run(ftp):
         command = raw_input('\nEnter a command (login, change password, create user, admin, quit): ')
         if command == 'login':
             username = raw_input('Username: ')
-            password = getpass()
+            password = getpass('Password: ')
             try:
                 ftp.login(username, password)
                 event_handler = MyHandler(ftp)
@@ -329,8 +319,8 @@ def run(ftp):
             # append to the pass.dat file probably
             ftp.login('root', 'password')
             username = raw_input("Enter the new username: ")
-            password = getpass()
-            password2 = getpass()
+            password = getpass('Enter a password: ')
+            password2 = getpass('Enter your password again: ')
             if password != password2:
                 print "Passwords do not match, please try again"
                 continue
@@ -342,7 +332,7 @@ def run(ftp):
                 pass
         elif command == 'admin':
             username = raw_input('\nPlease login as an admin\nUsername: ')
-            password = getpass()
+            password = getpass('Password: ')
             if username=='root' and password=='password':
                 ftp.login('root', 'password')
                 while True:
