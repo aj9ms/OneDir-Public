@@ -14,7 +14,7 @@ class Handler(FTPHandler):
         if a[0].startswith('createuser'):
             with open('pass.dat', 'r') as f:
                 for line in f:
-                    if a[1] in line:
+                    if a[1] == line:
                         self.respond('214 user already exists')
                         return
             with open('pass.dat', 'a') as f:
@@ -114,6 +114,7 @@ def main():
     except:
         pass
     authorizer.add_user('root', 'password', os.path.join(os.getcwd()), perm='elradfmwM')
+    # authorizer.remove_user('alice')
     # authorizer.remove_user('ben')
     # authorizer.add_user('ben', 'edgar', os.path.join(os.getcwd(), 'ben'), perm='elradfmwM')
     # authorizer.add_user('ben', 'lol', os.getcwd())
