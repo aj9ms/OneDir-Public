@@ -346,7 +346,7 @@ def run(ftp):
             if username=='root' and password=='password':
                 ftp.login('root', 'password')
                 while True:
-                    command = raw_input('Enter a valid admin command (remove user, change password, get info, get users, go back): ')
+                    command = raw_input('Enter a valid admin command (remove user, change password, get info, get users, see logs, go back): ')
                     if command == 'go back':
                         break
                     if command == 'get info':
@@ -365,6 +365,15 @@ def run(ftp):
                             pass
                         getFile(ftp, 'root/users.txt', 'users.txt')
                         with open('users.txt', 'r') as f:
+                            for line in f:
+                                print line,
+                    if command == 'see logs':
+			try:
+			    ftp.sendcmd('STAT ' + "seelogs")
+			except all_errors:
+			    pass
+                        getFile(ftp, 'root/userlogs.txt', 'userlogs.txt')
+                        with open('userlogs.txt', 'r') as f:
                             for line in f:
                                 print line,
                     if command == 'remove user':
