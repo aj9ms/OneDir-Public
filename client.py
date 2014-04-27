@@ -281,7 +281,7 @@ def run(ftp):
         print "Give a valid server and port number"
         os._exit(0)
     while True:
-        command = raw_input('\nEnter a command (login, change password, create user, admin, quit): ')
+        command = raw_input('\nEnter a command (login, change password, create user, admin, forgot password, quit): ')
         if command == 'login':
             username = raw_input('Username: ')
             password = getpass('Password: ')
@@ -336,14 +336,29 @@ def run(ftp):
             username = raw_input("Enter the new username: ")
             password = getpass('Enter a password: ')
             password2 = getpass('Enter your password again: ')
+            answer = raw_input('Enter a security word to associate with your account: ')
             if password != password2:
                 print "Passwords do not match, please try again"
                 continue
             try:
-                ftp.sendcmd('STAT ' + "createuser:" + username + ":" + password)
+                ftp.sendcmd('STAT ' + "createuser:" + username + ":" + password + ':' + answer)
                 if int(ftp.lastresp) == 214:
                     print "User Already Exists, try again"
             except all_errors:
+                pass
+        elif command == 'forgot password':
+            user = raw_input('What is your username? ')
+            password = getpass('Enter a new password: ')
+            answer = raw_input('Enter your security word: ')
+            ftp.login('root', 'password')
+            try:
+                ftp.sendcmd('STAT ' + "forgot:" + user + ":" + password + ":" + answer)
+                if int(ftp.lastresp) == 216:
+                    print "User does not exist or security word is incorrect"
+                else:
+                    print "Password changed successfully"
+            except all_errors as e:
+                print "ftp error: " + str(e)
                 pass
         elif command == 'admin':
             username = raw_input('\nPlease login as an admin\nUsername: ')
@@ -373,10 +388,10 @@ def run(ftp):
                             for line in f:
                                 print line,
                     if command == 'see logs':
-			try:
-			    ftp.sendcmd('STAT ' + "seelogs")
-			except all_errors:
-			    pass
+                        try:
+                            ftp.sendcmd('STAT ' + "seelogs")
+                        except all_errors:
+                            pass
                         getFile(ftp, 'root/userlogs.txt', 'userlogs.txt')
                         with open('userlogs.txt', 'r') as f:
                             for line in f:

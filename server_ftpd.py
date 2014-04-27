@@ -20,7 +20,7 @@ class Handler(FTPHandler):
                         self.respond('214 user already exists')
                         return
             with open('pass.dat', 'a') as f:
-                f.write(a[1] + ":" + a[2] + '\n')
+                f.write(a[1] + ":" + a[2] + ':' + a[3] + '\n')
             try:
                 os.mkdir(a[1])
             except:
@@ -47,10 +47,17 @@ class Handler(FTPHandler):
             with open('pass.dat', 'w') as f:
                 temp2 = temp.split('\n')
                 for line in temp2:
-                    if line.split(':')[0] == a[1]:
-                        f.write(a[1] + ':' + a[2] + '\n')
+                    v = line.split(':')
+                    if len(v) == 2:
+                        if line.split(':')[0] == a[1]:
+                            f.write(a[1] + ':' + a[2] + '\n')
+                        else:
+                            f.write(line + '\n')
                     else:
-                        f.write(line + '\n')
+                        if line.split(':')[0] == a[1]:
+                            f.write(a[1] + ':' + a[2] + ':' + v[2] + '\n')
+                        else:
+                            f.write(line + '\n')
             self.authorizer.remove_user(a[1])
             self.authorizer.add_user(a[1], a[2], os.path.join(os.getcwd(), a[1]), perm='elradfmwM')
         elif a[0].startswith('removeuser'):
@@ -98,23 +105,31 @@ class Handler(FTPHandler):
                     if user == 'root':
                         continue
                     f.write(user + '\n')
+        elif a[0].startswith('forgot'):
+            b = False
+            temp = ""
+            with open('pass.dat', 'r') as f:
+                for line in f:
+                    if a[1] == line.split(':')[0].strip():
+                        a2 = line.split(':')
+                        if len(a2) > 2:
+                            if a2[2].strip() == a[3]:
+                                b = True
+                    else:
+                        temp = temp + line
+            if not b:
+                self.respond('216 something went wrong')
+                return
+            else:
+                with open('pass.dat', 'w') as f:
+                    f.write(a[1] + ':' + a[2] + ':' + a[3] + '\n')
+                    temp2 = temp.split('\n')
+                    for line in temp2:
+                        f.write(line + '\n')
+                self.authorizer.remove_user(a[1])
+                self.authorizer.add_user(a[1], a[2], os.path.join(os.getcwd(), a[1]), perm='elradfmwM')
         self.respond('213 Done')
         return
-
-def sendemail(to, password):
-    gmail_user = 'do.not.reply.OneDir@gmail.com'
-    gmail_pwd = 'onedirpassword'
-    smtpserver = smtplib.SMTP("smtp.gmail.com",587)
-    smtpserver.ehlo()
-    smtpserver.starttls()
-    smtpserver.ehlo
-    smtpserver.login(gmail_user, gmail_pwd)
-    header = 'To:' + to + '\n' + 'From: ' + gmail_user + '\n' + 'Subject:Recovering your OneDir Password \n'
-    print header
-    msg = header + '\n Your password is: ' + password + ' \n\n'
-    smtpserver.sendmail(gmail_user, to, msg)
-    print 'done!'
-    smtpserver.close()
 
 def main():
     # Instantiate a dummy authorizer for managing 'virtual' users
