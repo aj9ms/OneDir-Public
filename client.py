@@ -159,7 +159,10 @@ def rename(ftp, fromname, toname):
     ftp.rename(fromname, toname)
 
 def createDirectory(ftp, direc):
-    ftp.mkd(direc)
+    try:
+        ftp.mkd(direc)
+    except:
+        pass
 
 def uploadAll(ftp, folder):
     # you pass in a folder and it uploads everything in that folder to the ftp server recursively
@@ -295,16 +298,28 @@ def run(ftp):
             try:
                 ftp.login(username, password)
                 event_handler = MyHandler(ftp)
-                logging.warning('watchdog started')
                 observer = Observer()
                 observer.schedule(event_handler, 'OneDir', recursive=True)
-                try:
-                    syncOneDirServer(ftp, 'OneDir')
-                except all_errors as e:
-                    if str(e) == '550 No such file or directory.':
-                        ftp.mkd('OneDir')
+                syncOption = raw_input('Do you want to do a client-default sync or server-default sync? (client/server): ')
+                if syncOption.startswith('s') or syncOption.startswith('S'):
+                    try:
                         syncOneDirServer(ftp, 'OneDir')
-                time.sleep(1)
+                    except all_errors as e:
+                        if str(e) == '550 No such file or directory.':
+                            ftp.mkd('OneDir')
+                            syncOneDirServer(ftp, 'OneDir')
+                elif syncOption.startswith('c') or syncOption.startswith('C'):
+                    try:
+                        syncOneDirClient(ftp, 'OneDir')
+                    except all_errors as e:
+                        if str(e) == '550 No such file or directory.':
+                            ftp.mkd('OneDir')
+                            syncOneDirClient(ftp, 'OneDir')
+                else:
+                    print "Please try again and choose a valid client or server sync"
+                    continue
+                time.sleep(1.5)
+                logging.warning('watchdog started')
                 observer.start()
                 #watchDogThread.start()
                 break

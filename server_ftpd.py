@@ -1,5 +1,6 @@
 import os
 import socket
+import smtplib
 from shutil import rmtree
 from pyftpdlib.authorizers import DummyAuthorizer
 from pyftpdlib.handlers import FTPHandler
@@ -93,6 +94,21 @@ class Handler(FTPHandler):
                     f.write(user + '\n')
         self.respond('213 Done')
         return
+
+def sendemail(to, password):
+    gmail_user = 'do.not.reply.OneDir@gmail.com'
+    gmail_pwd = 'onedirpassword'
+    smtpserver = smtplib.SMTP("smtp.gmail.com",587)
+    smtpserver.ehlo()
+    smtpserver.starttls()
+    smtpserver.ehlo
+    smtpserver.login(gmail_user, gmail_pwd)
+    header = 'To:' + to + '\n' + 'From: ' + gmail_user + '\n' + 'Subject:Recovering your OneDir Password \n'
+    print header
+    msg = header + '\n Your password is: ' + password + ' \n\n'
+    smtpserver.sendmail(gmail_user, to, msg)
+    print 'done!'
+    smtpserver.close()
 
 def main():
     # Instantiate a dummy authorizer for managing 'virtual' users
