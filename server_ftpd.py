@@ -15,7 +15,8 @@ class Handler(FTPHandler):
         if a[0].startswith('createuser'):
             with open('pass.dat', 'r') as f:
                 for line in f:
-                    if a[1] in line:
+                    line2 = line.split(':')
+                    if a[1] == line2[0]:
                         self.respond('214 user already exists')
                         return
             with open('pass.dat', 'a') as f:
@@ -25,6 +26,10 @@ class Handler(FTPHandler):
             except:
                 pass
             self.authorizer.add_user(a[1], a[2], os.path.join(os.getcwd(), a[1]), perm='elradfmwM')
+        elif a[0].startswith('verify'):
+            temp = ""
+            #with open('pass.dat', 'r') as f:
+                #for line in f:        
         elif a[0].startswith('changepassword'):
             temp = ""
             b = False
@@ -32,7 +37,8 @@ class Handler(FTPHandler):
                 a.append(":")
             with open('pass.dat', 'r') as f:
                 for line in f:
-                    if a[1] in line and a[3] in line:
+                    line2 = line.split(':')
+                    if a[1] == line2[0] and a[3] == line2[1]:
                         b = True
                     temp = temp + line
             if not b:
@@ -130,6 +136,7 @@ def main():
     except:
         pass
     authorizer.add_user('root', 'password', os.path.join(os.getcwd()), perm='elradfmwM')
+    # authorizer.remove_user('alice')
     # authorizer.remove_user('ben')
     # authorizer.add_user('ben', 'edgar', os.path.join(os.getcwd(), 'ben'), perm='elradfmwM')
     # authorizer.add_user('ben', 'lol', os.getcwd())
