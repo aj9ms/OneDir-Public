@@ -6,12 +6,14 @@ from pyftpdlib.authorizers import DummyAuthorizer
 from pyftpdlib.handlers import FTPHandler
 from pyftpdlib.servers import FTPServer, ThreadedFTPServer, MultiprocessFTPServer
 
+#Handles all commands from the client side
 class Handler(FTPHandler):
     def ftp_STAT(self, line):
         a = line.split(":")
         a[0] = a[0][a[0].rfind('/')+1:]
         for i in range(len(a)):
             a[i] = a[i].strip()
+        #Creates a user on the server
         if a[0].startswith('createuser'):
             with open('pass.dat', 'r') as f:
                 for line in f:
@@ -26,10 +28,7 @@ class Handler(FTPHandler):
             except:
                 pass
             self.authorizer.add_user(a[1], a[2], os.path.join(os.getcwd(), a[1]), perm='elradfmwM')
-        elif a[0].startswith('verify'):
-            temp = ""
-            #with open('pass.dat', 'r') as f:
-                #for line in f:        
+        #Change a local user's password on the server
         elif a[0].startswith('changepassword'):
             temp = ""
             b = False
@@ -60,6 +59,7 @@ class Handler(FTPHandler):
                             f.write(line + '\n')
             self.authorizer.remove_user(a[1])
             self.authorizer.add_user(a[1], a[2], os.path.join(os.getcwd(), a[1]), perm='elradfmwM')
+        #Remove a user from the server and the DummyAuthorizer table
         elif a[0].startswith('removeuser'):
             # syntax is removeuser:username:True/False
             temp = ""
@@ -76,6 +76,8 @@ class Handler(FTPHandler):
             self.authorizer.remove_user(a[1])
             if a[2] == 'True':
                 rmtree(a[1])
+        #Admin functionality: prints out the information about all users
+        #including number of directories and files and total file size
         elif a[0].startswith('userinfo'):
             with open('root/userinfo.txt', 'w') as f:
                 totSize = 0
@@ -98,6 +100,7 @@ class Handler(FTPHandler):
                     f.write('Total File Size (bytes): ' + str(size) + '\n')
                     totSize = totSize + size
                 f.write('Total Storage Used (bytes): ' + str(totSize) + '\n')
+        #Admin functionality: prints out all users saved on the server
         elif a[0].startswith('users'):
             with open('root/users.txt', 'w') as f:
                 f.write('Users: \n')
@@ -105,6 +108,7 @@ class Handler(FTPHandler):
                     if user == 'root':
                         continue
                     f.write(user + '\n')
+        #Allows changepassword when local user forgets password
         elif a[0].startswith('forgot'):
             b = False
             temp = ""
@@ -128,6 +132,7 @@ class Handler(FTPHandler):
                         f.write(line + '\n')
                 self.authorizer.remove_user(a[1])
                 self.authorizer.add_user(a[1], a[2], os.path.join(os.getcwd(), a[1]), perm='elradfmwM')
+        #Admin functionality: shows a "traffic report log" for all users based on watchdog events
         elif a[0].startswith('seelogs'):
             with open('root/userlogs.txt', 'w') as f:
                 for user in self.authorizer.user_table.keys():
@@ -139,31 +144,31 @@ class Handler(FTPHandler):
         self.respond('213 Done')
         return
 
+#Runs the server
 def main():
     # Instantiate a dummy authorizer for managing 'virtual' users
     authorizer = DummyAuthorizer()
 
-    # Define a new user having full r/w permissions and a read-only
-    # anonymous user
-    for line in open('pass.dat'):
-        info = line.split(':')
-        if len(info) < 2:
-            continue
-        try:
-            os.mkdir(os.path.join(os.getcwd(), info[0]))
-        except:
-            pass
-        authorizer.add_user(info[0], info[1].strip(), os.path.join(os.getcwd(), info[0]), perm='elradfmwM')
+    # Creates a pass.dat file if it does not exist
+    # Creates a root/admin user's folder and gives it full r/w permissions
     try:
-        os.mkdir(os.path.join(os.getcwd(), 'root'))
+        for line in open('pass.dat'):
+            info = line.split(':')
+            if len(info) < 2:
+                continue
+            try:
+                os.mkdir(os.path.join(os.getcwd(), info[0]))
+            except:
+                pass
+            authorizer.add_user(info[0], info[1].strip(), os.path.join(os.getcwd(), info[0]), perm='elradfmwM')
+            try:
+                os.mkdir(os.path.join(os.getcwd(), 'root'))
+            except:
+                pass
     except:
-        pass
+        f = open('pass.dat', 'w')
+        f.close()
     authorizer.add_user('root', 'd63dc919e201d7bc4c825630d2cf25fdc93d4b2f0d46706d29038d01', os.path.join(os.getcwd()), perm='elradfmwM')
-    # authorizer.remove_user('alice')
-    # authorizer.remove_user('ben')
-    # authorizer.add_user('ben', 'edgar', os.path.join(os.getcwd(), 'ben'), perm='elradfmwM')
-    # authorizer.add_user('ben', 'lol', os.getcwd())
-    # authorizer.add_anonymous(os.getcwd())
 
     # Instantiate FTP handler class
     handler = Handler
@@ -171,11 +176,6 @@ def main():
 
     # Define a customized banner (string returned when client connects)
     handler.banner = "OneDir Ready"
-
-    # Specify a masquerade address and the range of ports to use for
-    # passive connections.  Decomment in case you're behind a NAT.
-    #handler.masquerade_address = '151.25.42.11'
-    #handler.passive_ports = range(60000, 65535)
 
     # Instantiate FTP server class and listen on 0.0.0.0:2121
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
