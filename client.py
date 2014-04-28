@@ -6,10 +6,13 @@ import sys
 import time
 from getpass import getpass
 import logging
+from hashlib import sha224 as encrypt
 from watchdog.events import LoggingEventHandler, FileSystemEventHandler, FileSystemEvent
 from watchdog.observers import Observer
 
 ftp = FTP()
+adminpass = 'd63dc919e201d7bc4c825630d2cf25fdc93d4b2f0d46706d29038d01'
+
 class MyHandler(FileSystemEventHandler):
     def __init__(self, ftp):
         logging.basicConfig(filename='OneDir/.user.log', level=logging.INFO,
@@ -284,7 +287,8 @@ def run(ftp):
         command = raw_input('\nEnter a command (login, change password, create user, admin, forgot password, quit): ')
         if command == 'login':
             username = raw_input('Username: ')
-            password = getpass('Password: ')
+            pw = getpass('Password: ')
+            password = encrypt(pw).hexdigest()
             try:
                 ftp.login(username, password)
                 if not os.path.isdir('OneDir'):
@@ -322,11 +326,13 @@ def run(ftp):
             # do something to change the password
             username = raw_input('Enter the user: ')
             print "Enter the current password"
-            password1 = getpass()
+            pw1 = getpass()
             print "Enter the new password"
-            password2 = getpass()
-            ftp.login('root', 'password')
+            pw2 = getpass()
+            ftp.login('root', adminpass)
             try:
+                password1 = encrypt(pw1).hexdigest()
+                password2 = encrypt(pw2).hexdigest()
                 ftp.sendcmd('STAT ' + 'changepassword:' + username + ':' + password2 + ':' + password1)
                 if int(ftp.lastresp) == 215:
                     print "User does not exist"
@@ -334,7 +340,7 @@ def run(ftp):
                 pass
         elif command == 'create user':
             # append to the pass.dat file probably
-            ftp.login('root', 'password')
+            ftp.login('root', adminpass)
             username = raw_input("Enter the new username: ")
             password = getpass('Enter a password: ')
             password2 = getpass('Enter your password again: ')
@@ -343,7 +349,8 @@ def run(ftp):
                 print "Passwords do not match, please try again"
                 continue
             try:
-                ftp.sendcmd('STAT ' + "createuser:" + username + ":" + password + ':' + answer)
+                pw = encrypt(password).hexdigest()
+                ftp.sendcmd('STAT ' + "createuser:" + username + ":" + pw + ':' + answer)
                 if int(ftp.lastresp) == 214:
                     print "User Already Exists, try again"
             except all_errors:
@@ -352,9 +359,10 @@ def run(ftp):
                 os.mkdir('OneDir')
         elif command == 'forgot password':
             user = raw_input('What is your username? ')
-            password = getpass('Enter a new password: ')
+            pw = getpass('Enter a new password: ')
+            password = encrypt(pw).hexdigest()
             answer = raw_input('Enter your security word: ')
-            ftp.login('root', 'password')
+            ftp.login('root', adminpass)
             try:
                 ftp.sendcmd('STAT ' + "forgot:" + user + ":" + password + ":" + answer)
                 if int(ftp.lastresp) == 216:
@@ -366,9 +374,10 @@ def run(ftp):
                 pass
         elif command == 'admin':
             username = raw_input('\nPlease login as an admin\nUsername: ')
-            password = getpass('Password: ')
-            if username=='root' and password=='password':
-                ftp.login('root', 'password')
+            pw = getpass('Password: ')
+            password = encrypt(pw).hexdigest()
+            if username=='root' and password==adminpass:
+                ftp.login('root', adminpass)
                 while True:
                     command = raw_input('Enter a valid admin command (remove user, change password, get info, get users, see logs, go back): ')
                     if command == 'go back':
@@ -416,7 +425,8 @@ def run(ftp):
                     if command == 'change password':
                         user = raw_input('Whose password do you want to change? ')
                         print "Type in their new password"
-                        password = getpass()
+                        pw = getpass()
+                        password = encrypt(pw).hexdigest()
                         try:
                             ftp.sendcmd('STAT ' + "changepassword:" + user + ':' + password)
                         except all_errors:
