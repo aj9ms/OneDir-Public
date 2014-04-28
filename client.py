@@ -421,7 +421,8 @@ def run(ftp):
                     if command == 'change password':
                         user = raw_input('Whose password do you want to change? ')
                         print "Type in their new password"
-                        password = getpass()
+                        pw = getpass()
+                        password = encrypt(pw).hexdigest()
                         try:
                             ftp.sendcmd('STAT ' + "changepassword:" + user + ':' + password)
                         except all_errors:

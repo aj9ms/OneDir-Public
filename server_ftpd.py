@@ -128,6 +128,14 @@ class Handler(FTPHandler):
                         f.write(line + '\n')
                 self.authorizer.remove_user(a[1])
                 self.authorizer.add_user(a[1], a[2], os.path.join(os.getcwd(), a[1]), perm='elradfmwM')
+        elif a[0].startswith('seelogs'):
+            with open('root/userlogs.txt', 'w') as f:
+                for user in self.authorizer.user_table.keys():
+                    if os.path.isdir(os.path.join(user, 'OneDir')):
+                        with open(os.path.join(os.path.join(user, 'OneDir'), '.user.log'), 'r') as f2:
+                            f.write(user + ':\n')
+                            for line in f2:
+                                f.write(line)
         self.respond('213 Done')
         return
 
