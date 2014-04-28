@@ -1,3 +1,5 @@
+# Ben Edgar; Alice Ju; Ann Duong
+# Team 17
 from ftplib import FTP
 from ftplib import all_errors
 import os

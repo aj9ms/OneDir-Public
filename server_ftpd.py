@@ -1,3 +1,5 @@
+# Ben Edgar; Alice Ju; Ann Duong
+# Team 17
 import os
 import socket
 import smtplib
