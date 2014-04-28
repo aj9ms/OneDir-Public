@@ -1,4 +1,3 @@
-__author__ = 'ben'
 from ftplib import FTP
 from ftplib import all_errors
 import os
@@ -7,12 +6,15 @@ import time
 from getpass import getpass
 import logging
 from hashlib import sha224 as encrypt
-from watchdog.events import LoggingEventHandler, FileSystemEventHandler, FileSystemEvent
+from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
+# A global ftp object we use for the first instantiation of ftp
 ftp = FTP()
+# The default adminpass encrypted with sha224
 adminpass = 'd63dc919e201d7bc4c825630d2cf25fdc93d4b2f0d46706d29038d01'
 
+# This is the handler for watchdog that we use to watch the filesystem
 class MyHandler(FileSystemEventHandler):
     def __init__(self, ftp):
         logging.basicConfig(filename='OneDir/.user.log', level=logging.INFO,
@@ -85,39 +87,26 @@ class MyHandler(FileSystemEventHandler):
         else:
             deleteFile(self.ftp, source[source.find("/OneDir/", 0, len(source))+8:])
 
-# DEPRECATED, USE getFile instead
-# def getBinaryFile(ftp, filename, outfile=None):
-#     # get a binary file
-#     if outfile is None:
-#         outfile = sys.stdout
-#     ftp.retrbinary('RETR ' + filename, outfile.write)
-#
-# def getTextFile(ftp, filename, outfile=None):
-#     # get a text file
-#     if outfile is None:
-#         outfile = sys.stdout
-#     else:
-#         outfile = open(outfile, 'w')
-#     ftp.retrlines('RETR ' + filename, lambda s, w = outfile.write: w(s + '\n'))
-
+# This function gets a file from the ftp server
 def getFile(ftp, filePath, outfile=None):
     # get any kind of file, the file path should be from whatever the current directory is
     if outfile is None:
         outfile = sys.stdout
     else:
         outfile = open(outfile, 'w')
-    extension = os.path.splitext(filePath)[1]
+    # extension = os.path.splitext(filePath)[1]
     # if extension in ('.txt', '.htm', '.html'):
     #     ftp.retrlines('RETR ' + filePath, lambda s, w = outfile.write: w(s) + '\n')
     # else:
     ftp.retrbinary('RETR ' + filePath, outfile.write)
 
+# delete a file on the server
 def deleteFile(ftp, filePath):
-    # delete a file on the server
     ftp.delete(filePath)
 
+# check to see if a file is a file or a directory
+# by seeing if you can cwd into it
 def is_file(ftp, filename):
-    # check to see if a file is a file or a directory
     current = ftp.pwd()
     try:
         ftp.cwd(filename)
@@ -127,10 +116,9 @@ def is_file(ftp, filename):
     ftp.cwd(current)
     return False
 
+# This function deletes a directory on the server recursively
 def deleteDir(ftp, direc):
     # delete a directory on the server and everything inside of it
-    # REALLY weird error -- ftp.nlst() wasn't working on a directory called "ben111", but when I renamed
-    # it everything worked... maybe something to ask about
     if len(ftp.nlst(direc)) == 0:
         ftp.rmd(direc)
     else:
@@ -148,15 +136,18 @@ def deleteDir(ftp, direc):
         ftp.cwd(curr)
         ftp.rmd(direc)
 
+# Renames a folder or file
 def rename(ftp, fromname, toname):
     ftp.rename(fromname, toname)
 
+# creates a directory
 def createDirectory(ftp, direc):
     try:
         ftp.mkd(direc)
     except:
         pass
 
+# Uploads everything within a particular folder
 def uploadAll(ftp, folder):
     # you pass in a folder and it uploads everything in that folder to the ftp server recursively
     try:
@@ -176,6 +167,8 @@ def uploadAll(ftp, folder):
     ftp.cwd(curr)
     os.chdir(curr2)
 
+# This function syncs OneDir and defaults to the client's files if the
+# files are different between the local OneDir directory and the server
 def syncOneDirClient(ftp, folder):
     curr_ftp = ftp.pwd()
     curr_cli = os.getcwd()
@@ -206,6 +199,8 @@ def syncOneDirClient(ftp, folder):
     ftp.cwd(curr_ftp)
     os.chdir(curr_cli)
 
+# This function does the same thing as the above function,
+# except it defaults to the server files when the files differ
 def syncOneDirServer(ftp, folder):
     curr_ftp = ftp.pwd()
     curr_cli = os.getcwd()
@@ -236,10 +231,9 @@ def syncOneDirServer(ftp, folder):
     os.chdir(curr_cli)
 
 
-
+# upload a file @param ftp -- the ftp connection to use
+#               @param filePath -- the file path of the file to be uploaded
 def upload(ftp, filePath):
-    # upload a file @param ftp -- the ftp connection to use
-    #               @param filePath -- the file path of the file to be uploaded
     if os.path.isdir(filePath):
         uploadAll(ftp, filePath)
         return
@@ -271,20 +265,25 @@ def upload(ftp, filePath):
         else:
             ftp.storbinary('STOR ' + filePath, open(filePath, 'rb'), 1024)
 
+# This is our main function that runs when we call 'python client.py'
 def run(ftp):
+    # First we must get the IP and port of the valid OneDir server
     server = raw_input('What is the IP Address of the server? ')
     try:
         port = int(raw_input('What is the port number to connect to? '))
     except ValueError:
         print "The port must be an integer ... quitting"
         os._exit(0)
+    # Connect to the server
     try:
         ftp.connect(server, port)
     except all_errors:
         print "Give a valid server and port number"
         os._exit(0)
+    # This is our while loop to accept input from the user
     while True:
         command = raw_input('\nEnter a command (login, change password, create user, admin, forgot password, quit): ')
+        # login the user
         if command == 'login':
             username = raw_input('Username: ')
             pw = getpass('Password: ')
@@ -315,13 +314,14 @@ def run(ftp):
                     print "Please try again and choose a valid client or server sync"
                     continue
                 time.sleep(1.5)
-                logging.warning('watchdog started')
+                logging.warning('Synchronization has started')
                 observer.start()
                 #watchDogThread.start()
                 break
             except all_errors as e:
                 print "FTP error: " + str(e)
                 # print "Login failed, try again."
+        # change the user's password
         elif command == 'change password':
             # do something to change the password
             username = raw_input('Enter the user: ')
@@ -338,6 +338,7 @@ def run(ftp):
                     print "User does not exist"
             except:
                 pass
+        # create a new user
         elif command == 'create user':
             # append to the pass.dat file probably
             ftp.login('root', adminpass)
@@ -357,6 +358,7 @@ def run(ftp):
                 pass
             if not os.path.isdir('OneDir'):
                 os.mkdir('OneDir')
+        # see if the user knows his/her security answer to change his/her password
         elif command == 'forgot password':
             user = raw_input('What is your username? ')
             pw = getpass('Enter a new password: ')
@@ -372,16 +374,20 @@ def run(ftp):
             except all_errors as e:
                 print "ftp error: " + str(e)
                 pass
+        # do admin commands
         elif command == 'admin':
             username = raw_input('\nPlease login as an admin\nUsername: ')
             pw = getpass('Password: ')
             password = encrypt(pw).hexdigest()
             if username=='root' and password==adminpass:
                 ftp.login('root', adminpass)
+                # The admin while loop to do commands
                 while True:
                     command = raw_input('Enter a valid admin command (remove user, change password, get info, get users, see logs, go back): ')
+                    # go back to regular user input
                     if command == 'go back':
                         break
+                    # get information about users associated with the server
                     if command == 'get info':
                         try:
                             ftp.sendcmd('STAT ' + "userinfo")
@@ -391,6 +397,7 @@ def run(ftp):
                         with open('userinfo.txt', 'r') as f:
                             for line in f:
                                 print line,
+                    # get the names of the users associated with the server
                     if command == 'get users':
                         try:
                             ftp.sendcmd('STAT ' + "users")
@@ -400,6 +407,7 @@ def run(ftp):
                         with open('users.txt', 'r') as f:
                             for line in f:
                                 print line,
+                    # get the watchdog logs for each user
                     if command == 'see logs':
                         try:
                             ftp.sendcmd('STAT ' + "seelogs")
@@ -409,6 +417,7 @@ def run(ftp):
                         with open('userlogs.txt', 'r') as f:
                             for line in f:
                                 print line,
+                    # remove a user, optionally removing their files
                     if command == 'remove user':
                         user = raw_input('Which user do you want to remove? ')
                         cond = raw_input('Do you want to delete their files? ')
@@ -422,6 +431,7 @@ def run(ftp):
                                 ftp.sendcmd('STAT ' + "removeuser:" + user + ':False')
                             except all_errors:
                                 pass
+                    # change any user's password
                     if command == 'change password':
                         user = raw_input('Whose password do you want to change? ')
                         print "Type in their new password"
