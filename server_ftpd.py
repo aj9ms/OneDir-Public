@@ -150,7 +150,7 @@ def main():
         os.mkdir(os.path.join(os.getcwd(), 'root'))
     except:
         pass
-    authorizer.add_user('root', 'password', os.path.join(os.getcwd()), perm='elradfmwM')
+    authorizer.add_user('root', 'd63dc919e201d7bc4c825630d2cf25fdc93d4b2f0d46706d29038d01', os.path.join(os.getcwd()), perm='elradfmwM')
     # authorizer.remove_user('alice')
     # authorizer.remove_user('ben')
     # authorizer.add_user('ben', 'edgar', os.path.join(os.getcwd(), 'ben'), perm='elradfmwM')
