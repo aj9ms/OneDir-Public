@@ -287,6 +287,8 @@ def run(ftp):
             password = getpass('Password: ')
             try:
                 ftp.login(username, password)
+                if not os.path.isdir('OneDir'):
+                    os.mkdir('OneDir')
                 event_handler = MyHandler(ftp)
                 observer = Observer()
                 observer.schedule(event_handler, 'OneDir', recursive=True)
@@ -346,6 +348,8 @@ def run(ftp):
                     print "User Already Exists, try again"
             except all_errors:
                 pass
+            if not os.path.isdir('OneDir'):
+                os.mkdir('OneDir')
         elif command == 'forgot password':
             user = raw_input('What is your username? ')
             password = getpass('Enter a new password: ')
